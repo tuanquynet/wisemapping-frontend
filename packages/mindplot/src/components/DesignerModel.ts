@@ -64,6 +64,16 @@ class DesignerModel {
     return this._topics.filter((t) => t.isOnFocus());
   }
 
+  findTopicsByText(query: string): Topic[] {
+    const normalizedQuery = query.trim().toLowerCase();
+    if (!normalizedQuery) {
+      return [];
+    }
+    return this._topics.filter((topic) =>
+      topic.getModel().getPlainText().toLowerCase().includes(normalizedQuery),
+    );
+  }
+
   filterSelectedRelationships(): Relationship[] {
     return this._relationships.filter((r) => r.isOnFocus());
   }
