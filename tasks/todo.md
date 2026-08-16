@@ -5,7 +5,7 @@ See `tasks/plan.md` for full task descriptions, acceptance criteria, and rationa
 ## Phase 1: mindplot foundation
 
 - [x] Task 1: `DesignerModel.findTopicsByText()` search helper (`packages/mindplot/src/components/DesignerModel.ts` + new unit test) — implemented on `DesignerModel` rather than `Designer` per plan.md: it's where `_topics`/`filterSelectedTopics()`/`filterTopicsIds()` already live, and is DOM-free/directly testable without mocking `Designer`'s heavier construction. Callers use `designer.getModel().findTopicsByText(query)`.
-- [ ] Task 2: `Designer.revealNode()` reveal-and-jump, extracted out of `DesignerKeyboard` (`Designer.ts`, `DesignerKeyboard.ts` + test)
+- [x] Task 2: `Designer.revealNode()` reveal-and-jump, extracted out of `DesignerKeyboard` (`Designer.ts`, `DesignerKeyboard.ts` + `util/topicVisibility.ts` + test) — the ancestor-walking logic lives in a new `util/topicVisibility.ts` (type-only `Topic` import) rather than inline in `Designer.ts`/`DesignerKeyboard.ts`, because `Designer.ts` transitively imports `WidgetBuilder` -> `SvgImageIcon.ts`'s Vite-only `import.meta.glob`, which breaks under Jest the moment `Designer.ts` is loaded as a value (not just a type). `Designer.revealNode()` itself has no direct unit test (would require a full heavy `Designer` construction with no existing precedent); the underlying `getCollapsedAncestorIds()` logic it depends on is fully unit tested (5 cases). Regression-checked manually: the 2 call sites that never called `_ensureTopicVisible` (central-topic fallback, side-child) were left calling the unchanged `_goToNode` helper, not `revealNode`, to avoid introducing new ancestor-expansion behavior where none existed before.
 
 ### Checkpoint 1
 

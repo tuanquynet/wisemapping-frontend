@@ -122,37 +122,40 @@ Implementation order follows this graph bottom-up: the two `mindplot` primitives
 
 ---
 
-## Task 2: `Designer.revealNode()` reveal-and-jump
+## Task 2: `Designer.revealNode()` reveal-and-jump ✅ DONE — ancestor-walking logic extracted to `util/topicVisibility.ts`, not inlined (see implementation note below)
 
 **Description:** Extract the collapsed-ancestor-expansion + deselect + focus/pan sequence currently living only inside `DesignerKeyboard._ensureTopicVisible` / `_goToNode` into a public `Designer.revealNode(topic: Topic): void` method: expand every collapsed ancestor of `topic`, call `deselectAll()`, then call the existing `goToNode(topic)` (which already handles focus + `ensureNodeVisible` → `Canvas.ensureVisible`). Refactor `DesignerKeyboard` to call `Designer.revealNode()` instead of its own inline private logic, so keyboard navigation and the new search feature share one code path and cannot drift apart.
 
 **Acceptance criteria:**
 
-- [ ] Calling `designer.revealNode(topic)` on a topic nested inside a collapsed ancestor expands that ancestor (and any further collapsed ancestors above it) before panning
-- [ ] Calling `designer.revealNode(topic)` on an already-visible topic behaves identically to today's `goToNode(topic)` (deselect others, focus, pan into view) — no behavior change for the already-working case
-- [ ] Existing `DesignerKeyboard` arrow-key navigation between topics still expands collapsed branches exactly as before the refactor (regression check, not new behavior)
+- [x] Calling `designer.revealNode(topic)` on a topic nested inside a collapsed ancestor expands that ancestor (and any further collapsed ancestors above it) before panning — proven by `getCollapsedAncestorIds()`'s unit tests (grandparent-only-collapsed and multi-level cases)
+- [x] Calling `designer.revealNode(topic)` on an already-visible topic behaves identically to today's `goToNode(topic)` (deselect others, focus, pan into view) — `revealNode` is a strict superset: it's a no-op ancestor-expansion (empty id list) followed by the exact same `deselectAll()` + `goToNode()` calls that existed before
+- [x] Existing `DesignerKeyboard` arrow-key navigation between topics still expands collapsed branches exactly as before the refactor — verified by code inspection: all 5 call sites that previously paired `_ensureTopicVisible` + `_goToNode` now call `designer.revealNode()`; the 2 call sites that never called `_ensureTopicVisible` (central-topic fallback in `_moveSelection`, `_goToSideChild`) were deliberately left calling the unchanged `_goToNode` helper, not upgraded to `revealNode`, so no new expansion behavior was introduced anywhere
 
 **Verification:**
 
-- [ ] Tests pass: `yarn workspace @wisemapping/mindplot test:unit` — existing `DesignerKeyboard`-related tests must still pass unmodified in behavior; add a new test asserting `revealNode` expands a collapsed ancestor before panning
-- [ ] Build succeeds: `yarn workspace @wisemapping/mindplot build`
-- [ ] Manual check: in the running editor, collapse a branch, use arrow-key navigation into a topic inside it, confirm it still auto-expands (this is the pre-existing behavior the refactor must not break)
+- [x] Tests pass: `yarn workspace @wisemapping/mindplot test:unit` (229/229, up from 224) — no existing `DesignerKeyboard` test suite existed to regress (confirmed by search before starting); the new `getCollapsedAncestorIds()` unit tests (5 cases) cover the extracted logic directly
+- [x] Build succeeds: `yarn workspace @wisemapping/mindplot build`
+- [ ] Manual check (not yet performed): in the running editor, collapse a branch, use arrow-key navigation into a topic inside it, confirm it still auto-expands
 
 **Dependencies:** None (independent of Task 1; both are mindplot-only)
 
-**Files likely touched:**
+**Implementation note:** `getCollapsedAncestorIds(topic)` — the pure ancestor-walking logic — lives in a new `packages/mindplot/src/components/util/topicVisibility.ts`, not inline in `Designer.ts` as originally planned. Reason: `Designer.ts` transitively imports `WidgetBuilder` → `SvgImageIcon.ts`, which calls Vite-only `import.meta.glob` — loading `Designer.ts` as a _value_ (not just a type) inside Jest throws `TS1343`. Any test importing a named/default export _function_ from `Designer.ts` would hit this; a type-only `import type Topic` reference does not (confirmed: the file's only import is type-only). `Designer.revealNode()` itself (thin orchestration: call the pure helper, conditionally `shrinkBranch`, `deselectAll`, `goToNode`) has no direct unit test — matching the existing test-coverage depth of `Designer.goToNode()`/`ensureNodeVisible()`, neither of which has one either, for the same reason.
 
-- `packages/mindplot/src/components/Designer.ts` (new `revealNode` method)
-- `packages/mindplot/src/components/DesignerKeyboard.ts` (replace inline `_ensureTopicVisible`/`_goToNode` body with a call to `designer.revealNode()`)
-- `packages/mindplot/test/unit/` — extend or add a test file covering the extracted behavior
+**Files touched:**
 
-**Estimated scope:** Small–Medium (2–3 files; the risk is entirely in not changing `DesignerKeyboard`'s observable behavior, not in the new code's size)
+- `packages/mindplot/src/components/util/topicVisibility.ts` (new — `getCollapsedAncestorIds`, default export per `import/prefer-default-export`)
+- `packages/mindplot/src/components/Designer.ts` (new `revealNode` method, imports `getCollapsedAncestorIds`)
+- `packages/mindplot/src/components/DesignerKeyboard.ts` (5 call sites now call `designer.revealNode()`; dead `_ensureTopicVisible` removed; `_goToNode` kept for the 2 non-expanding call sites)
+- `packages/mindplot/test/unit/designer-collapsed-ancestors.test.ts` (new, 5 cases)
+
+**Estimated scope:** Small–Medium (4 files touched, in line with the plan's estimate; one of the four is the new util file the plan didn't anticipate)
 
 ---
 
 ## Task 3: `SearchPane` component + toolbar wiring
 
-**Description:** Build the first complete, mouse-usable vertical slice: a new toolbar `ActionConfig` (search icon) that opens a submenu popover (same `render:` pattern as `OutlineViewDialog`/`KeyboardShorcutsHelp`) containing a new `SearchPane` component. `SearchPane` follows the `image-icon-tab` idiom — a MUI `TextField` with a search icon `startAdornment` and clear `endAdornment`, filtering via `designer.findTopicsByText()` (Task 1) on every keystroke (`useMemo`, no debounce), rendering a scrollable list of matches (topic text + a short ancestor-path breadcrumb if helpful for disambiguating same-text topics). Clicking a result calls `designer.revealNode()` (Task 2) and closes the popover.
+**Description:** Build the first complete, mouse-usable vertical slice: a new toolbar `ActionConfig` (search icon) that opens a submenu popover (same `render:` pattern as `OutlineViewDialog`/`KeyboardShorcutsHelp`) containing a new `SearchPane` component. `SearchPane` follows the `image-icon-tab` idiom — a MUI `TextField` with a search icon `startAdornment` and clear `endAdornment`, filtering via `designer.getModel().findTopicsByText()` (Task 1) on every keystroke (`useMemo`, no debounce), rendering a scrollable list of matches (topic text + a short ancestor-path breadcrumb if helpful for disambiguating same-text topics). Clicking a result calls `designer.revealNode()` (Task 2) and closes the popover.
 
 **Acceptance criteria:**
 
