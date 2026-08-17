@@ -28,7 +28,7 @@ ALL `.ts`, `.tsx`, `.js`, `.jsx` files MUST start with this header BEFORE any im
 
 ## 2. Material UI Imports (CRITICAL - 500KB+ Bundle Impact)
 
-⚠️ Pre-push hook will REJECT incorrect imports
+⚠️ Not currently enforced by any hook or CI — follow this convention manually. `./scripts/check-mui-imports.sh` exists but isn't wired into `.husky/pre-push`.
 
 ### ✅ CORRECT (Tree-shakeable):
 ```typescript
