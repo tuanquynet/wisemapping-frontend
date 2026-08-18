@@ -24,6 +24,7 @@ import {
   RESTPersistenceManager,
   LocalStorageManager,
   MockPersistenceManager,
+  GoogleDrivePersistenceManager,
 } from '@wisemapping/editor';
 import type { PersistenceError, MapInfo } from '@wisemapping/editor';
 import type { EditorRenderMode } from '@wisemapping/mindplot';
@@ -51,8 +52,23 @@ const buildPersistenceManagerForEditor = (
   mode: EditorRenderMode,
   setSessionExpired: (value: boolean) => void,
   hid?: number,
+  gdriveConfig?: { fileId: string; fileName: string },
 ): PersistenceManager => {
   let result: PersistenceManager;
+  if (gdriveConfig) {
+    const driveClient = AppConfig.getGoogleDriveClient();
+    result = new GoogleDrivePersistenceManager(
+      gdriveConfig.fileId,
+      gdriveConfig.fileName,
+      driveClient,
+    );
+    result.addErrorHandler((error: PersistenceError) => {
+      if (error.errorType === 'auth') {
+        setSessionExpired(true);
+      }
+    });
+    return result;
+  }
   if (AppConfig.isRestClient()) {
     const baseUrl = AppConfig.getApiBaseUrl();
 
@@ -90,12 +106,12 @@ const buildPersistenceManagerForEditor = (
 };
 
 export type EditorPropsType = {
-  mapId: number;
+  mapId: number | string;
   hid?: number;
   pageMode: PageModeType;
   zoom?: number;
+  isGdrive?: boolean;
 };
-
 const ActionDispatcher = React.lazy(() => import('../maps-page/action-dispatcher'));
 const AccountMenu = React.lazy(() => import('../maps-page/account-menu'));
 
@@ -172,16 +188,23 @@ const EditorPage = ({ mapId, pageMode, zoom, hid }: EditorPropsType): React.Reac
       bootstrapXML: editorMetadata.bootstrapXML,
     };
 
+    const gdriveConfig =
+      editorMetadata.gdriveFileId && editorMetadata.gdriveFileName
+        ? { fileId: editorMetadata.gdriveFileId, fileName: editorMetadata.gdriveFileName }
+        : undefined;
+
     persistence = buildPersistenceManagerForEditor(
       editorMetadata.editorMode,
       setSessionExpired,
       hid,
+      gdriveConfig,
     );
 
     const existingMapInfo = mapInfoRef.current;
+    const targetNumericId = typeof mapId === 'number' ? mapId : -1;
     if (!existingMapInfo || existingMapInfo.getId() !== mapId.toString()) {
       mapInfoRef.current = new MapInfoImpl(
-        mapId,
+        targetNumericId,
         client,
         editorMetadata.mapMetadata.title,
         editorMetadata.mapMetadata.creatorFullName,

@@ -22,6 +22,9 @@ import RestClient from '../client/rest-client';
 import MockAdminClient from '../client/mock-admin-client';
 import AdminClient, { AdminClientInterface } from '../client/admin-client';
 import { appLogger as log } from '../../utils/logger';
+import GoogleAuthService from '../google-drive/GoogleAuthService';
+import GoogleDriveClient from '../google-drive/GoogleDriveClient';
+import GooglePickerService from '../google-drive/GooglePickerService';
 
 type ConfigContainer = {
   type: 'remote' | 'static';
@@ -52,6 +55,9 @@ class AppConfig {
   private static _client: Client | null = null;
 
   private static _adminClient: AdminClientInterface | null = null;
+  private static _googleAuthService: GoogleAuthService | null = null;
+  private static _googleDriveClient: GoogleDriveClient | null = null;
+  private static _googlePickerService: GooglePickerService | null = null;
 
   static async initialize(): Promise<Config> {
     if (this._config) {
@@ -250,6 +256,52 @@ class AppConfig {
   static getUiBaseUrl(): string {
     const config = this.fetchOrGetConfig();
     return config.uiBaseUrl;
+  }
+
+  static getGoogleClientId(): string {
+    const processEnv =
+      typeof process !== 'undefined' && process.env ? process.env.VITE_GOOGLE_CLIENT_ID : undefined;
+    const windowEnv =
+      typeof window !== 'undefined'
+        ? (window as unknown as { _GOOGLE_CLIENT_ID?: string })._GOOGLE_CLIENT_ID
+        : undefined;
+    return (
+      processEnv ||
+      windowEnv ||
+      '370696919734-50hu2ocv3t3djdj27fr3torhk4lslnhl.apps.googleusercontent.com'
+    );
+  }
+
+  static getGoogleApiKey(): string {
+    const processEnv =
+      typeof process !== 'undefined' && process.env ? process.env.VITE_GOOGLE_API_KEY : undefined;
+    const windowEnv =
+      typeof window !== 'undefined'
+        ? (window as unknown as { _GOOGLE_API_KEY?: string })._GOOGLE_API_KEY
+        : undefined;
+    return processEnv || windowEnv || '';
+  }
+
+  static getGoogleAuthService(): GoogleAuthService {
+    if (!this._googleAuthService) {
+      this._googleAuthService = new GoogleAuthService(this.getGoogleClientId());
+    }
+    return this._googleAuthService;
+  }
+
+  static getGoogleDriveClient(): GoogleDriveClient {
+    if (!this._googleDriveClient) {
+      const authService = this.getGoogleAuthService();
+      this._googleDriveClient = new GoogleDriveClient(() => authService.requestToken());
+    }
+    return this._googleDriveClient;
+  }
+
+  static getGooglePickerService(): GooglePickerService {
+    if (!this._googlePickerService) {
+      this._googlePickerService = new GooglePickerService(this.getGoogleApiKey());
+    }
+    return this._googlePickerService;
   }
 }
 

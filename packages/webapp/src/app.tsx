@@ -51,6 +51,7 @@ import { EditorLoadingSkeleton } from '@wisemapping/editor';
 import { HelmetProvider } from './components/seo';
 import { PageModeType, loader as mapLoader } from './components/editor-page/loader';
 import { loader as configLoader } from './loader';
+import { gdriveLoader } from './components/editor-page/GoogleDriveEditorLoader';
 import queryClient from './queryClient';
 
 import { ClientContext } from './classes/provider/client-context';
@@ -87,6 +88,22 @@ const PageEditorWrapper = ({ mode }: { mode: PageModeType }) => {
   return (
     <Suspense fallback={<EditorLoadingSkeleton />}>
       <EditorPage pageMode={mode} mapId={mapId} hid={hid} zoom={zoom} />
+    </Suspense>
+  );
+};
+const PageGdriveEditorWrapper = () => {
+  const fileId = useParams().fileId;
+  if (!fileId) {
+    throw new Error('Google Drive file ID is required');
+  }
+
+  const [searchParams] = useSearchParams();
+  const zoomStr = searchParams.get('zoom');
+  const zoom = zoomStr ? Number.parseFloat(zoomStr) : undefined;
+
+  return (
+    <Suspense fallback={<EditorLoadingSkeleton />}>
+      <EditorPage pageMode="edit" mapId={fileId} isGdrive={true} zoom={zoom} />
     </Suspense>
   );
 };
@@ -235,6 +252,16 @@ const buildRouter = () =>
               path="/c/maps/:id/edit"
               element={<PageEditorWrapper mode="edit" />}
               loader={mapLoader('edit', true)}
+              errorElement={
+                <IntlProviderWrapper>
+                  <ErrorPage />
+                </IntlProviderWrapper>
+              }
+            />
+            <Route
+              path="/c/maps/gdrive/:fileId/edit"
+              element={<PageGdriveEditorWrapper />}
+              loader={gdriveLoader()}
               errorElement={
                 <IntlProviderWrapper>
                   <ErrorPage />

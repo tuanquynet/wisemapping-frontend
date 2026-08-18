@@ -1,6 +1,7 @@
 {
   "include": [
-    "src/**/*"
+    "src/**/*",
+    "test/**/*"
   ],
   "compilerOptions": {
     "jsx": "react-jsx",
@@ -8,7 +9,8 @@
       "vite/client",
       "node",
       "react",
-      "react-dom"
+      "react-dom",
+      "jest"
     ],
     "outDir": "./dist/",
     "rootDir": "..",

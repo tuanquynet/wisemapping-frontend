@@ -8,8 +8,8 @@ Yarn 4 + Lerna monorepo (workspaces under `packages/*`), Node `>=24`. Versioning
 
 - `packages/web2d` — thin SVG abstraction layer; foundation for rendering.
 - `packages/mindplot` — vanilla ES6/TS canvas library that renders and edits mind maps. Depends on `web2d`. No React.
-- `packages/editor` — React component wrapper around `mindplot`. Built with Vite as a UMD+ESM library (`dist/editor.{es,umd}.js`). MUI v7 + Emotion + styled-components.
-- `packages/webapp` — the React application (Vite, react-router 7, MUI v7, react-query). Consumes `@wisemapping/editor`. Talks to the backend at `wisemapping-open-source` (separate repo); base API URL is configured via `API_URL` env var.
+- `packages/editor` — React component wrapper around `mindplot`. Built with Vite as a UMD+ESM library (`dist/editor.{es,umd}.js`). MUI v9 + Emotion + styled-components.
+- `packages/webapp` — the React application (Vite, react-router 7, MUI v9, react-query). Consumes `@wisemapping/editor`. Talks to the backend at `wisemapping-open-source` (separate repo); base API URL is configured via `API_URL` env var.
 
 Top-level extras:
 
@@ -22,9 +22,8 @@ Top-level extras:
 Run from repo root unless noted. `lerna run X` fans out to every package; use `--scope @wisemapping/<pkg>` to target one.
 
 ```sh
-nvm use
+nvm use   # NOTE: .nvmrc is stale at v16 — use Node >=24 per package.json engines
 yarn install
-export NODE_OPTIONS=--openssl-legacy-provider   # required for builds
 
 yarn build                                       # build all packages
 yarn lint                                        # eslint across all packages
@@ -39,14 +38,16 @@ yarn workspace @wisemapping/editor build
 yarn workspace @wisemapping/webapp dev          # vite dev server on :3000
 
 # Playgrounds (browsable examples for lib packages)
-yarn playground --scope @wisemapping/web2d
-yarn playground --scope @wisemapping/mindplot
+yarn workspace @wisemapping/editor playground
+# web2d/mindplot have no playground script; use their Storybook instead:
+yarn workspace @wisemapping/web2d storybook
+yarn workspace @wisemapping/mindplot storybook
 
 # Single Jest test file (mindplot/editor)
 cd packages/mindplot && yarn jest test/unit/path/to/file.test.ts
 ```
 
-Storybook is the integration-test harness for `web2d`, `mindplot`, and `editor` — `test:integration` boots Storybook (or Vite playground) on a fixed port and runs Cypress against it via `scripts/run-storybook-cypress.js` / `start-server-and-test`. Ports: web2d 6106, mindplot 6107, editor playground 8081 + storybook 6008, webapp 3000. Tests use dynamic port allocation that will kill blockers — see `TESTING_PORT_ALLOCATION.md`.
+Storybook is the integration-test harness for `web2d`, `mindplot`, and `editor` — `test:integration` boots Storybook (or Vite playground) on a fixed port and runs Cypress against it via `scripts/run-storybook-cypress.js` / `start-server-and-test`. Ports: web2d 6106, mindplot 6107, editor playground 8081 + storybook 6008, webapp 3000.
 
 ## i18n
 
@@ -61,15 +62,24 @@ yarn workspace @wisemapping/editor i18n:compile   # produce compiled-lang/*.json
 
 ## Image-snapshot tests
 
-`cypress-image-snapshot` is host-sensitive (fonts/AA differ between machines). Run snapshot tests via Docker to match CI:
-
-```sh
-docker-compose -f docker-compose.snapshots.yml up                # verify
-docker-compose -f docker-compose.snapshots.update.yml up         # accept changes
-```
-
-Commit updated PNGs alongside the code change.
+`cypress-image-snapshot` is host-sensitive (fonts/AA differ between machines) — expect diffs when running locally on a different OS than CI runs on. Commit updated PNGs alongside the code change when a diff is intentional.
 
 ## Contributing flow
 
-Branch from `develop` (not `main`) using `feature/*` or `bugfix/*`. Husky pre-commit runs `lint-staged` (eslint + prettier per package); pre-push runs `yarn lint && yarn test`. Don't bypass these — CI runs the same checks.
+Branch from `develop` (not `main`) using `feature/*` or `bugfix/*`. Husky pre-commit runs `lint-staged` (eslint + prettier per package); pre-push lints/tests only packages affected by the diff and checks i18n compiled output is committed when `lang/` files change (see `.husky/pre-push`). There is no CI pipeline — these hooks are the only enforcement.
+
+<!-- bmad:context -->
+<!-- Verified 2026-08-16 against 59a520659d8a4ce4aff08ec588ad85e21aaef22b. Managed by bmad-project-context; edits inside this block are replaced on refresh. Keep anything you want preserved outside the markers. -->
+
+## Running and verifying
+
+- No CI configuration exists in this repo — Husky hooks above are the only enforcement; don't rely on a pipeline to catch what they don't.
+- Pre-push (`.husky/pre-push`) only lints/tests packages _affected_ by the diff (transitive: web2d → mindplot → editor → webapp), not a blanket `yarn lint && yarn test`, and separately checks i18n compiled output is committed when `lang/` files change.
+
+## Known pitfalls
+
+- `.nvmrc` pins Node 16; `package.json` requires `>=24` — don't `nvm use` blindly, use Node >=24.
+- `webpack.common.js` is referenced by three `eslint.config.mjs` files and `.husky/pre-push`'s trigger list but doesn't exist — leftover from the Webpack→Vite migration (`e952b05b`); harmless, don't go looking for it.
+- `src/compiled-lang/*.json` (editor, webapp) is generated by `i18n:compile` but committed to git — regenerate it, don't hand-edit it.
+
+<!-- /bmad:context -->

@@ -16,9 +16,8 @@ For those interested in delving deeper into the implementation details, the corr
 Make sure you have NodeJs installed (version compatible with `package.json` engine), and yarn installed (`npm i -g yarn`).
 
 ```sh
-nvm use
+nvm use   # NOTE: .nvmrc is stale at v16 — use Node >=24 per package.json engines
 yarn install
-export NODE_OPTIONS=--openssl-legacy-provider
 ```
 
 Please refer to each package's Readme.md for anything specific to the package.
@@ -39,8 +38,9 @@ Each package might provide the following scripts. You can run these for all pack
 
 > start a devServer with some browsable examples
 
-`yarn playground --scope @wisemapping/web2d`
-`yarn playground --scope @wisemapping/mindplot`
+`yarn workspace @wisemapping/editor playground`
+
+web2d and mindplot have no `playground` script; use Storybook instead: `yarn workspace @wisemapping/web2d storybook` / `yarn workspace @wisemapping/mindplot storybook`
 
 ## test
 
@@ -56,13 +56,7 @@ Each package might provide the following scripts. You can run these for all pack
 
 `yarn test:unit`
 
-**Note:** Integration tests now use **dynamic port allocation** to prevent port conflicts. The test infrastructure will automatically:
-
-- Kill any processes blocking the preferred test ports
-- Find available ports if needed
-- Configure both dev servers and Cypress to use the allocated ports
-
-See [TESTING_PORT_ALLOCATION.md](./TESTING_PORT_ALLOCATION.md) for detailed information.
+**Note:** Integration tests use fixed ports per package (see `CLAUDE.md`'s Common commands section).
 
 ## Image Snapshot Testing
 
@@ -72,11 +66,7 @@ When a test that contains a `matchImageSnapshot` call is run, it compares the sn
 
 There is a [caveat](https://github.com/jaredpalmer/cypress-image-snapshot/issues/98) where colors, fonts or ui may differ depending on the host machine running the tests.
 
-A workaround for this is to run the tests using docker. Make sure you have docker and docker-compose installed.
-
-Run snapshot tests: `docker-compose -f docker-compose.snapshots.yml up`  
-If anything changed, and the change was intentional, update the snapshots and then commit the new images to source control.  
-Update snapshots: `docker-compose -f docker-compose.snapshots.update.yml up`
+`cypress-image-snapshot` is host-sensitive (fonts/AA differ between machines) — expect diffs when running locally on a different OS than CI runs on. Commit updated PNGs alongside the code change when a diff is intentional.
 
 # Members
 

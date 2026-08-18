@@ -53,6 +53,7 @@ export type ActionType =
   | 'history'
   | 'theme'
   | 'back'
+  | 'open-gdrive'
   | undefined;
 
 interface ActionProps {

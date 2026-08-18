@@ -16,6 +16,68 @@
  *   limitations under the License.
  */
 
+class FallbackResponse {
+  readonly status: number;
+  readonly statusText: string;
+  readonly ok: boolean;
+  private readonly bodyContent: string;
+  readonly headers: Headers;
+
+  constructor(body?: string | null, init?: ResponseInit) {
+    this.status = init?.status ?? 200;
+    this.statusText = init?.statusText ?? (this.status >= 200 && this.status < 300 ? 'OK' : '');
+    this.ok = this.status >= 200 && this.status < 300;
+    this.bodyContent = body ?? '';
+    this.headers = new (typeof Headers !== 'undefined' ? Headers : FallbackHeaders)(
+      init?.headers,
+    ) as unknown as Headers;
+  }
+
+  async json(): Promise<unknown> {
+    return JSON.parse(this.bodyContent);
+  }
+
+  async text(): Promise<string> {
+    return this.bodyContent;
+  }
+}
+
+class FallbackHeaders {
+  private map: Map<string, string> = new Map();
+
+  constructor(init?: HeadersInit) {
+    if (init) {
+      if (Array.isArray(init)) {
+        init.forEach(([k, v]) => this.map.set(k.toLowerCase(), v));
+      } else if (typeof init === 'object') {
+        Object.entries(init).forEach(([k, v]) => this.map.set(k.toLowerCase(), v));
+      }
+    }
+  }
+
+  get(name: string): string | null {
+    return this.map.get(name.toLowerCase()) ?? null;
+  }
+
+  set(name: string, value: string): void {
+    this.map.set(name.toLowerCase(), value);
+  }
+
+  has(name: string): boolean {
+    return this.map.has(name.toLowerCase());
+  }
+}
+
+function getResponseClass(): typeof Response {
+  if (typeof Response !== 'undefined') {
+    return Response;
+  }
+  if (typeof globalThis !== 'undefined' && globalThis.Response) {
+    return globalThis.Response;
+  }
+  return FallbackResponse as unknown as typeof Response;
+}
+
 /**
  * Creates a Response object with JSON content.
  * Uses Response.json() if available, otherwise falls back to manual Response creation.
@@ -26,19 +88,27 @@
  * @returns A Response object with JSON content
  */
 export function createJsonResponse(data: unknown, init?: ResponseInit): Response {
-  // Check if Response.json is available (it may not be in all environments)
-  if (typeof Response !== 'undefined' && typeof Response.json === 'function') {
-    return Response.json(data, init);
+  const ResponseClass = getResponseClass();
+  if (typeof ResponseClass.json === 'function') {
+    return ResponseClass.json(data, init);
   }
 
-  // Fallback: manually create Response with JSON string
-  const headers = new Headers(init?.headers);
-  if (!headers.has('Content-Type')) {
-    headers.set('Content-Type', 'application/json');
-  }
-
-  return new Response(JSON.stringify(data), {
+  return new ResponseClass(JSON.stringify(data), {
     ...init,
-    headers,
+    headers: {
+      'Content-Type': 'application/json',
+      ...(init?.headers || {}),
+    },
+  });
+}
+
+/**
+ * Creates an error Response object with text or JSON content.
+ */
+export function createErrorResponse(message: string, status = 500, statusText?: string): Response {
+  const ResponseClass = getResponseClass();
+  return new ResponseClass(message, {
+    status,
+    statusText: statusText || (status === 400 ? 'Bad Request' : 'Internal Server Error'),
   });
 }

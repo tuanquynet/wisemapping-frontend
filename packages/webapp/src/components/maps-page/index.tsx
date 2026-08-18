@@ -44,6 +44,7 @@ import Typography from '@mui/material/Typography';
 
 import AddCircleTwoTone from '@mui/icons-material/AddCircleTwoTone';
 import CloudUploadTwoTone from '@mui/icons-material/CloudUploadTwoTone';
+import CloudDownloadTwoTone from '@mui/icons-material/CloudDownloadTwoTone';
 import ClearIcon from '@mui/icons-material/Clear';
 import LabelTwoTone from '@mui/icons-material/LabelTwoTone';
 import PersonOutlineTwoTone from '@mui/icons-material/PersonOutlineTwoTone';
@@ -464,6 +465,28 @@ const MapsPage = (): ReactElement => {
               >
                 <span className="message">
                   <FormattedMessage id="action.import" defaultMessage="Import" />
+                </span>
+              </Button>
+            </Tooltip>
+            <Tooltip
+              arrow={true}
+              title={intl.formatMessage({
+                id: 'maps.gdrive-desc',
+                defaultMessage: 'Open mindmap from Google Drive',
+              })}
+            >
+              <Button
+                color="primary"
+                size="medium"
+                variant="outlined"
+                type="button"
+                disableElevation={true}
+                startIcon={<CloudDownloadTwoTone />}
+                css={classes.importButton}
+                onClick={() => setActiveDialog('open-gdrive')}
+              >
+                <span className="message">
+                  <FormattedMessage id="action.open-gdrive" defaultMessage="Google Drive" />
                 </span>
               </Button>
             </Tooltip>

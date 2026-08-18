@@ -58,6 +58,8 @@ export type MapInfo = {
   description: string;
   public: boolean;
   role: Role;
+  sourceType?: 'local' | 'gdrive';
+  sourceId?: string | null;
 };
 
 export type MapMetadata = {
@@ -88,6 +90,8 @@ export type ChangeHistory = {
 export type BasicMapInfo = {
   title: string;
   description?: string;
+  sourceType?: 'local' | 'gdrive';
+  sourceId?: string | null;
 };
 
 export type FieldError = {

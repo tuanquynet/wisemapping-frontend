@@ -28,6 +28,8 @@ export type EditorMetadata = {
   mapMetadata: MapMetadata;
   zoom: number;
   bootstrapXML?: string; // Bootstrap XML to use instead of fetching from server
+  gdriveFileId?: string;
+  gdriveFileName?: string;
 };
 
 export type PageModeType = 'edit' | 'try' | 'view-public' | 'view-private';

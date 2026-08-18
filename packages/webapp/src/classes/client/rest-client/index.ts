@@ -495,12 +495,16 @@ export default class RestClient implements Client {
   createMap(model: BasicMapInfo): Promise<number> {
     const handler = (success: (mapId: number) => void, reject: (error: ErrorInfo) => void) => {
       const theme = 'prism';
+      const sourceTypeParam = model.sourceType
+        ? `&sourceType=${encodeURIComponent(model.sourceType)}`
+        : '';
+      const sourceIdParam = model.sourceId ? `&sourceId=${encodeURIComponent(model.sourceId)}` : '';
 
       this.axios
         .post(
           `${this.baseUrl}/api/restful/maps?title=${encodeURIComponent(
             model.title,
-          )}&description=${encodeURIComponent(model.description ? model.description : '')}&theme=${encodeURIComponent(theme)}`,
+          )}&description=${encodeURIComponent(model.description ? model.description : '')}&theme=${encodeURIComponent(theme)}${sourceTypeParam}${sourceIdParam}`,
           undefined,
           { headers: { 'Content-Type': 'application/json' } },
         )
@@ -551,6 +555,8 @@ export default class RestClient implements Client {
               description: m.description,
               public: m['public'],
               role: m.role,
+              sourceType: m.sourceType,
+              sourceId: m.sourceId,
             };
           });
           success(maps);

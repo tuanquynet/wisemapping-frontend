@@ -27,6 +27,8 @@ import FormControlLabel from '@mui/material/FormControlLabel';
 import Radio from '@mui/material/Radio';
 import Select from '@mui/material/Select';
 import MenuItem from '@mui/material/MenuItem';
+import TextField from '@mui/material/TextField';
+import { exportMindmapToGoogleDrive } from './GoogleDriveExportHandler';
 import {
   Designer,
   TextExporterFactory,
@@ -43,7 +45,7 @@ import { useFetchMapMetadata } from '../../../../classes/middleware';
 import { trackExport } from '../../../../utils/analytics';
 
 type ExportFormat = 'svg' | 'jpg' | 'png' | 'pdf' | 'txt' | 'mm' | 'mmx' | 'wxml' | 'md';
-type ExportGroup = 'image' | 'document' | 'mindmap-tool';
+type ExportGroup = 'image' | 'document' | 'mindmap-tool' | 'gdrive';
 
 type ExportDialogProps = {
   mapId: number;
@@ -70,6 +72,13 @@ const ExportDialog = ({
 
   const [zoomToFit, setZoomToFit] = React.useState<boolean>(true);
   const exportTheme: ThemeType = 'prism';
+  const [gdriveFileName, setGdriveFileName] = React.useState<string>('');
+
+  useEffect(() => {
+    if (mapMetadata?.title) {
+      setGdriveFileName(mapMetadata.title);
+    }
+  }, [mapMetadata?.title]);
 
   const classes = useStyles();
 
@@ -90,6 +99,7 @@ const ExportDialog = ({
         defaultFormat = 'svg';
         break;
       case 'mindmap-tool':
+      case 'gdrive':
         defaultFormat = 'wxml';
         break;
     }
@@ -189,6 +199,34 @@ const ExportDialog = ({
 
   useEffect(() => {
     if (submit) {
+      if (exportGroup === 'gdrive') {
+        const fetchXml = async (): Promise<string> => {
+          const designer: Designer = globalThis.designer;
+          let mindmap: Mindmap;
+          if (designer != null) {
+            mindmap = designer.getMindmap();
+          } else {
+            mindmap = await fetchMindmap(mapId);
+          }
+          const textExporter = TextExporterFactory.create('wxml', mindmap);
+          return textExporter.export();
+        };
+
+        fetchXml()
+          .then((xml) =>
+            exportMindmapToGoogleDrive(gdriveFileName || mapMetadata?.title || 'mindmap', xml),
+          )
+          .then(() => {
+            trackExport('wxml', 'gdrive');
+            onClose();
+          })
+          .catch((fail) => {
+            console.error('Unexpected error during Google Drive export:', fail);
+            onClose();
+          });
+        return;
+      }
+
       exporter(exportFormat)
         .then((url: string) => {
           // Track specific export format in Google Analytics
@@ -350,6 +388,30 @@ const ExportDialog = ({
                                         MindManager (MMAP)
                                     </MenuItem> */}
                 </Select>
+              )}
+            </FormControl>
+            <FormControl>
+              <FormControlLabel
+                css={classes.label}
+                value="gdrive"
+                control={<Radio color="primary" />}
+                label={intl.formatMessage({
+                  id: 'export.gdrive-label',
+                  defaultMessage:
+                    'Google Drive (.WXML): Save a copy directly into your Google Drive account',
+                })}
+                color="secondary"
+              />
+              {exportGroup == 'gdrive' && (
+                <TextField
+                  variant="outlined"
+                  size="small"
+                  label={intl.formatMessage({ id: 'export.filename', defaultMessage: 'File Name' })}
+                  value={gdriveFileName}
+                  onChange={(e) => setGdriveFileName(e.target.value)}
+                  css={classes.select}
+                  style={{ marginTop: '8px', marginBottom: '8px' }}
+                />
               )}
             </FormControl>
           </RadioGroup>
