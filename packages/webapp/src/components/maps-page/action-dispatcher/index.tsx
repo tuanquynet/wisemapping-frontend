@@ -16,6 +16,7 @@
  *   limitations under the License.
  */
 
+import AppConfig from '../../../classes/app-config';
 import React, { useEffect } from 'react';
 import RenameDialog from './rename-dialog';
 import DeleteDialog from './delete-dialog';
@@ -80,6 +81,42 @@ const ActionDispatcher = ({
           // Theme is handled within the editor, just close the dialog
           onClose(true);
           break;
+        case 'open-gdrive': {
+          const authService = AppConfig.getGoogleAuthService();
+          const pickerService = AppConfig.getGooglePickerService();
+          authService
+            .requestToken()
+            .then((token) => {
+              pickerService.showPicker({
+                token,
+                title: 'Open Mindmap from Google Drive',
+                onPicked: async (file) => {
+                  const title = file.name
+                    ? file.name.replace(/\.(wxml|xml)$/i, '')
+                    : 'Google Drive Mindmap';
+                  try {
+                    await client.createMap({
+                      title,
+                      sourceType: 'gdrive',
+                      sourceId: file.id,
+                    });
+                  } catch (e) {
+                    console.warn('Failed to link Google Drive map in database', e);
+                  }
+                  window.location.href = `/c/maps/gdrive/${file.id}/edit`;
+                  onClose(true);
+                },
+                onCancel: () => {
+                  onClose(false);
+                },
+              });
+            })
+            .catch((err) => {
+              console.error('Failed to authenticate or open Google Drive picker', err);
+              onClose(false);
+            });
+          break;
+        }
       }
     }
   }, [action, mapsId, onClose]);

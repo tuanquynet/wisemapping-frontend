@@ -358,6 +358,16 @@ class MockClient implements Client {
   }
 
   createMap(map: BasicMapInfo): Promise<number> {
+    const existing =
+      map.sourceType === 'gdrive' && map.sourceId
+        ? this.maps.find((m) => m.sourceType === 'gdrive' && m.sourceId === map.sourceId)
+        : null;
+    if (existing) {
+      existing.lastModificationTime = new Date().toISOString();
+      if (map.title) existing.title = map.title;
+      return Promise.resolve(existing.id);
+    }
+
     const newMap: MapInfo = {
       id: Math.floor(Math.random() * 10000) + 100,
       description: map.description || '',
@@ -370,6 +380,8 @@ class MockClient implements Client {
       creationTime: new Date().toISOString(),
       public: false,
       role: 'owner',
+      sourceType: map.sourceType,
+      sourceId: map.sourceId,
     };
     this.maps.push(newMap);
     return Promise.resolve(newMap.id);

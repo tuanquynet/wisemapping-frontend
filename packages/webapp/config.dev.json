@@ -2,8 +2,8 @@
     "type": "static",
     "config": {
         "clientType": "rest",
-        "apiBaseUrl": "http://localhost:3000",
-        "uiBaseUrl": "http://localhost:3000",    
+        "apiBaseUrl": "http://localhost:3900",
+        "uiBaseUrl": "http://localhost:3900",    
         "analyticsAccount": "G-XXXXXXXXXX",
         "recaptcha2Enabled": false,
         "recaptcha2SiteKey": "6Lcat08kAAAAAIP-HjhzIa-Yq21PHgGa_ADWc-Ro",

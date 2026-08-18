@@ -22,6 +22,7 @@ import Designer from './components/Designer';
 import LocalStorageManager from './components/LocalStorageManager';
 import RESTPersistenceManager from './components/RestPersistenceManager';
 import MockPersistenceManager from './components/MockPersistenceManager';
+import GoogleDrivePersistenceManager from './components/GoogleDrivePersistenceManager';
 import DesignerOptionsBuilder from './components/DesignerOptionsBuilder';
 import ImageExporterFactory from './components/export/ImageExporterFactory';
 import TextExporterFactory from './components/export/TextExporterFactory';
@@ -84,6 +85,7 @@ export {
   MockPersistenceManager,
   LocalStorageManager,
   DesignerOptionsBuilder,
+  GoogleDrivePersistenceManager,
   buildDesigner,
   TextExporterFactory,
   ImageExporterFactory,
@@ -114,4 +116,5 @@ export { default as Relationship } from './components/Relationship';
 export type { default as ThemeType } from './components/model/ThemeType';
 export type { ThemeVariant } from './components/theme/Theme';
 export type { PersistenceError, PersistenceErrorCallback } from './components/PersistenceManager';
+export type { GoogleDriveApiAdapter } from './components/GoogleDrivePersistenceManager';
 export type { default as SizeType } from './components/SizeType';

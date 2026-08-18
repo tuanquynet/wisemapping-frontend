@@ -26,6 +26,7 @@ import {
   MockPersistenceManager,
   LocalStorageManager,
   RESTPersistenceManager,
+  GoogleDrivePersistenceManager,
   TextExporterFactory,
   ImageExporterFactory,
   Exporter,
@@ -41,6 +42,7 @@ import type MapInfo from './classes/model/map-info';
 import { useEditor } from './hooks/useEditor';
 import type { EditorConfiguration, EditorOptions } from './hooks/useEditor';
 import type { PersistenceError, SizeType } from '@wisemapping/mindplot';
+import type { GoogleDriveApiAdapter } from '@wisemapping/mindplot';
 import type { ThemeVariantStorage } from './types/ThemeVariantStorage';
 
 export type {
@@ -51,6 +53,7 @@ export type {
   SizeType,
   ThemeVariantStorage,
   EditorRenderMode,
+  GoogleDriveApiAdapter,
 };
 
 export {
@@ -62,6 +65,7 @@ export {
   MockPersistenceManager,
   LocalStorageManager,
   RESTPersistenceManager,
+  GoogleDrivePersistenceManager,
   TextExporterFactory,
   ImageExporterFactory,
   Exporter,

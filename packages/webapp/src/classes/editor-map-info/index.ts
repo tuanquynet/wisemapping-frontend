@@ -80,6 +80,10 @@ class MapInfoImpl implements MapInfo {
     const previousTitle = this.title;
     this.title = trimmedTitle;
 
+    if (this.id === -1) {
+      return Promise.resolve();
+    }
+
     return this.client.renameMap(this.id, { title: trimmedTitle }).catch((error) => {
       // Roll back optimistic update if rename fails
       this.title = previousTitle;

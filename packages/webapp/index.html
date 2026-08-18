@@ -73,6 +73,10 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="WiseMapping" />
 
+  <!-- Google Identity Services and Google API for Google Drive integration -->
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+  <script src="https://apis.google.com/js/api.js" async defer></script>
+
   <!-- Google Consent Mode v2 + Funding Choices CMP + AdSense -->
   <script type="text/javascript">
     if (<%= GOOGLE_ADDS_ENABLED %> && !/\/maps\/[^/]+\/(edit|print|view|public|embed|try)/.test(window.location.pathname)) {

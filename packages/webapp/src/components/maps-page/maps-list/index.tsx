@@ -44,6 +44,8 @@ import Tooltip from '@mui/material/Tooltip';
 import Button from '@mui/material/Button';
 import InputBase from '@mui/material/InputBase';
 import Link from '@mui/material/Link';
+import Chip from '@mui/material/Chip';
+import CloudQueueIcon from '@mui/icons-material/CloudQueue';
 
 import DeleteOutlined from '@mui/icons-material/DeleteOutlined';
 
@@ -353,6 +355,12 @@ export const MapsList = (props: MapsListProps): React.ReactElement => {
     const start = page * rowsPerPage;
     return sortedMaps.slice(start, start + rowsPerPage);
   }, [sortedMaps, page, rowsPerPage]);
+  const getMapEditUrl = (map: MapInfo): string => {
+    if (map.sourceType === 'gdrive' && map.sourceId) {
+      return `/c/maps/gdrive/${map.sourceId}/edit`;
+    }
+    return `/c/maps/${map.id}/edit`;
+  };
 
   const [activeRowAction, setActiveRowAction] = React.useState<ActionPanelState | undefined>(
     undefined,
@@ -616,7 +624,7 @@ export const MapsList = (props: MapsListProps): React.ReactElement => {
                 return (
                   <Card key={row.id} css={{ maxWidth: '94vw', margin: '3vw' }}>
                     <Link
-                      href={`/c/maps/${row.id}/edit`}
+                      href={getMapEditUrl(row)}
                       underline="none"
                       onClick={(e) => e.stopPropagation()}
                     >
@@ -784,7 +792,7 @@ export const MapsList = (props: MapsListProps): React.ReactElement => {
                           placement="bottom-start"
                         >
                           <Link
-                            href={`/c/maps/${row.id}/edit`}
+                            href={getMapEditUrl(row)}
                             color="textPrimary"
                             underline="always"
                             onClick={(e) => e.stopPropagation()}
@@ -792,9 +800,22 @@ export const MapsList = (props: MapsListProps): React.ReactElement => {
                               fontSize: '0.96rem',
                               fontFamily:
                                 'Figtree, "Noto Sans JP", Helvetica, "system-ui", Arial, sans-serif',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: 0.8,
                             }}
                           >
                             {row.title}
+                            {row.sourceType === 'gdrive' && (
+                              <Chip
+                                size="small"
+                                icon={<CloudQueueIcon style={{ fontSize: '0.9rem' }} />}
+                                label="Google Drive"
+                                variant="outlined"
+                                color="primary"
+                                sx={{ height: 20, fontSize: '0.72rem', cursor: 'pointer' }}
+                              />
+                            )}
                           </Link>
                         </Tooltip>
                       </TableCell>
