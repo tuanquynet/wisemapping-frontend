@@ -27,6 +27,7 @@ const config = {
   moduleNameMapper: {
     '^@wisemapping/web2d$': '<rootDir>/../web2d/src/index.ts',
     '^@wisemapping/web2d/(.*)$': '<rootDir>/../web2d/src/$1',
+    '\\.(svg|png|jpg|jpeg|gif)$': 'jest-transform-stub',
   },
 };
 

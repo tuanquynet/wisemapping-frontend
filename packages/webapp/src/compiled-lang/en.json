@@ -233,6 +233,12 @@
       "value": "Name"
     }
   ],
+  "action.save-as": [
+    {
+      "type": 0,
+      "value": "Save As"
+    }
+  ],
   "action.share": [
     {
       "type": 0,
@@ -669,28 +675,28 @@
       "value": "By continuing, you agree to our "
     },
     {
+      "type": 8,
+      "value": "termsLink",
       "children": [
         {
           "type": 0,
           "value": "Terms of Service"
         }
-      ],
-      "type": 8,
-      "value": "termsLink"
+      ]
     },
     {
       "type": 0,
       "value": " and "
     },
     {
+      "type": 8,
+      "value": "privacyLink",
       "children": [
         {
           "type": 0,
           "value": "Privacy Policy"
         }
-      ],
-      "type": 8,
-      "value": "privacyLink"
+      ]
     },
     {
       "type": 0,
@@ -1745,28 +1751,28 @@
       "value": "This site is protected by reCAPTCHA and the Google "
     },
     {
+      "type": 8,
+      "value": "privacyLink",
       "children": [
         {
           "type": 0,
           "value": "Privacy Policy"
         }
-      ],
-      "type": 8,
-      "value": "privacyLink"
+      ]
     },
     {
       "type": 0,
       "value": " and "
     },
     {
+      "type": 8,
+      "value": "termsLink",
       "children": [
         {
           "type": 0,
           "value": "Terms of Service"
         }
-      ],
-      "type": 8,
-      "value": "termsLink"
+      ]
     },
     {
       "type": 0,
@@ -1903,6 +1909,42 @@
     {
       "type": 0,
       "value": "Viewer"
+    }
+  ],
+  "save-as.copy-prefix": [
+    {
+      "type": 0,
+      "value": "Copy of "
+    }
+  ],
+  "save-as.destination": [
+    {
+      "type": 0,
+      "value": "Save to"
+    }
+  ],
+  "save-as.destination-gdrive": [
+    {
+      "type": 0,
+      "value": "Google Drive"
+    }
+  ],
+  "save-as.destination-internal": [
+    {
+      "type": 0,
+      "value": "WiseMapping Server"
+    }
+  ],
+  "save-as.gdrive-info": [
+    {
+      "type": 0,
+      "value": "The mindmap will be saved as a .wxml file to your Google Drive account."
+    }
+  ],
+  "save-as.title": [
+    {
+      "type": 0,
+      "value": "Save As"
     }
   ],
   "share.add-button": [

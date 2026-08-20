@@ -27,6 +27,7 @@ import UndoOutlinedIcon from '@mui/icons-material/UndoOutlined';
 import RedoOutlinedIcon from '@mui/icons-material/RedoOutlined';
 import RestoreOutlinedIcon from '@mui/icons-material/RestoreOutlined';
 import SaveOutlinedIcon from '@mui/icons-material/SaveOutlined';
+import SaveAsOutlinedIcon from '@mui/icons-material/SaveAsOutlined';
 import PrintOutlinedIcon from '@mui/icons-material/PrintOutlined';
 import FileDownloadOutlinedIcon from '@mui/icons-material/FileDownloadOutlined';
 import StarRateRoundedIcon from '@mui/icons-material/StarRateRounded';
@@ -420,11 +421,36 @@ const AppBar = ({
     undefined,
     {
       icon: <SaveOutlinedIcon />,
-      onClick: handleDebouncedSave,
       tooltip: keyTooltip(
         intl.formatMessage({ id: 'appbar.tooltip-save', defaultMessage: 'Save' }),
         'S',
       ),
+      options: [
+        {
+          icon: <SaveOutlinedIcon />,
+          tooltip: keyTooltip(
+            intl.formatMessage({ id: 'appbar.tooltip-save', defaultMessage: 'Save' }),
+            'S',
+          ),
+          onClick: () => {
+            trackAppBarAction('save');
+            handleDebouncedSave();
+          },
+          'data-testid': 'app-bar-save-option',
+        },
+        {
+          icon: <SaveAsOutlinedIcon />,
+          tooltip: intl.formatMessage({
+            id: 'appbar.tooltip-save-as',
+            defaultMessage: 'Save As',
+          }),
+          onClick: () => {
+            trackAppBarAction('save_as');
+            onAction('save-as');
+          },
+          'data-testid': 'app-bar-save-as-option',
+        },
+      ],
       visible: !capability.isHidden('save'),
       disabled: () => !model?.isMapLoadded(),
     },
