@@ -44,6 +44,7 @@ export type ActionType =
   | 'info'
   | 'create'
   | 'duplicate'
+  | 'save-as'
   | 'export'
   | 'label'
   | 'rename'
@@ -96,11 +97,11 @@ const ActionChooser = (props: ActionProps): React.ReactElement => {
 
       <Divider />
 
-      <MenuItem onClick={handleOnClose('duplicate')}>
+      <MenuItem onClick={handleOnClose('save-as')}>
         <ListItemIcon>
           <FileCopyOutlinedIcon />
         </ListItemIcon>
-        <FormattedMessage id="action.duplicate" defaultMessage="Duplicate" />
+        <FormattedMessage id="action.save-as" defaultMessage="Save As" />
       </MenuItem>
 
       {role == 'owner' && (

@@ -25,4 +25,5 @@ export type ToolbarActionType =
   | 'info'
   | 'theme'
   | 'rename'
-  | 'back';
+  | 'back'
+  | 'save-as';

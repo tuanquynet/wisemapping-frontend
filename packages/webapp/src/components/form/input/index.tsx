@@ -50,7 +50,10 @@ const Input = ({
   minLength,
   maxLength = 254,
 }: InputProps): React.ReactElement => {
-  const fieldError = error?.fields?.[name];
+  const fieldError =
+    error?.fields instanceof Map
+      ? error.fields.get(name)
+      : (error?.fields as unknown as Record<string, string>)?.[name];
   return (
     <TextField
       name={name}

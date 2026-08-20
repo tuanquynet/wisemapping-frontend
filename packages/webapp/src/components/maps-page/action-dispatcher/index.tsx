@@ -24,6 +24,7 @@ import { ActionType } from '../action-chooser';
 import { PageModeType } from '../../editor-page/loader';
 import { QueryClient } from '@tanstack/react-query';
 import DuplicateDialog from './duplicate-dialog';
+import SaveAsDialog from './save-as-dialog';
 import CreateDialog from './create-dialog';
 import HistoryDialog from './history-dialog';
 import ImportDialog from './import-dialog';
@@ -135,6 +136,7 @@ const ActionDispatcher = ({
         <DeleteMultiselectDialog onClose={handleOnClose} mapsId={mapsId} />
       )}
       {action === 'rename' && <RenameDialog onClose={handleOnClose} mapId={mapsId[0]} />}
+      {action === 'save-as' && <SaveAsDialog onClose={handleOnClose} mapId={mapsId[0]} />}
       {action === 'duplicate' && <DuplicateDialog onClose={handleOnClose} mapId={mapsId[0]} />}
       {action === 'history' && <HistoryDialog onClose={handleOnClose} mapId={mapsId[0]} />}
       {action === 'import' && <ImportDialog onClose={handleOnClose} />}

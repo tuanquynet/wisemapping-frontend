@@ -41,6 +41,9 @@
   "action.duplicate": {
     "defaultMessage": "Duplicate"
   },
+  "action.save-as": {
+    "defaultMessage": "Save As"
+  },
   "action.export": {
     "defaultMessage": "Export"
   },
@@ -124,6 +127,24 @@
   },
   "duplicate.title": {
     "defaultMessage": "Duplicate"
+  },
+  "save-as.title": {
+    "defaultMessage": "Save As"
+  },
+  "save-as.destination": {
+    "defaultMessage": "Save to"
+  },
+  "save-as.destination-internal": {
+    "defaultMessage": "WiseMapping Server"
+  },
+  "save-as.destination-gdrive": {
+    "defaultMessage": "Google Drive"
+  },
+  "save-as.gdrive-info": {
+    "defaultMessage": "The mindmap will be saved as a .wxml file to your Google Drive account."
+  },
+  "save-as.copy-prefix": {
+    "defaultMessage": "Copy of "
   },
   "expired.description": {
     "defaultMessage": "Your current session has expired. Please, sign in and try again."

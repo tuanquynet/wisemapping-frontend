@@ -219,6 +219,39 @@ describe('Editor Toolbar Submenu', () => {
 
     expect(screen.queryByRole('submenu')).toBeFalsy();
   });
+  it('Renders Save and Save As options in submenu', async () => {
+    const saveMock = jest.fn();
+    const saveAsMock = jest.fn();
+    const saveMenuConfig: ActionConfig = {
+      icon: <ThreeDRotation />,
+      tooltip: 'Save',
+      options: [
+        {
+          icon: <ThreeDRotation />,
+          tooltip: 'Save',
+          onClick: saveMock,
+          'data-testid': 'app-bar-save-option',
+        },
+        {
+          icon: <ThreeDRotation />,
+          tooltip: 'Save As',
+          onClick: saveAsMock,
+          'data-testid': 'app-bar-save-as-option',
+        },
+      ],
+    };
+
+    render(<ToolbarSubmenu configuration={saveMenuConfig} />);
+    const item = screen.getByRole('button');
+    fireEvent.mouseEnter(item);
+
+    expect(screen.getByTestId('app-bar-save-option')).toBeDefined();
+    expect(screen.getByTestId('app-bar-save-as-option')).toBeDefined();
+
+    fireEvent.click(screen.getByTestId('app-bar-save-as-option'));
+    expect(saveAsMock).toHaveBeenCalled();
+  });
+
 
 });
 

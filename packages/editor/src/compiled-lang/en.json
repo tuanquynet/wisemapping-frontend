@@ -119,6 +119,12 @@
       "value": "Save"
     }
   ],
+  "appbar.tooltip-save-as": [
+    {
+      "type": 0,
+      "value": "Save As"
+    }
+  ],
   "appbar.tooltip-shared": [
     {
       "type": 0,

@@ -35,6 +35,9 @@
   "appbar.tooltip-save": {
     "defaultMessage": "Save"
   },
+  "appbar.tooltip-save-as": {
+    "defaultMessage": "Save As"
+  },
   "appbar.tooltip-shared": {
     "defaultMessage": "Share for Collaboration"
   },
