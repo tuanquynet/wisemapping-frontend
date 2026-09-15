@@ -92,14 +92,15 @@ const LoginPage = (): React.ReactElement => {
       return;
     }
 
-    // Pass redirect URL via OAuth state parameter
-    let finalAuthUrl = authUrl;
+    // Pass redirect URL via OAuth state parameter and current origin
+    const url = new URL(authUrl);
     if (redirectUrl) {
-      const url = new URL(authUrl);
       url.searchParams.set('state', redirectUrl);
-      finalAuthUrl = url.toString();
     }
-    window.location.href = finalAuthUrl;
+    if (typeof window !== 'undefined' && window.location?.origin) {
+      url.searchParams.set('origin', window.location.origin);
+    }
+    window.location.href = url.toString();
   };
 
   useEffect(() => {
