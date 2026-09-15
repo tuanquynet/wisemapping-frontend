@@ -152,7 +152,11 @@ const RegistrationForm = ({ onCaptchaReset }: { onCaptchaReset?: () => void }) =
       console.error(`${providerName} OAuth callback URL is null`);
       return;
     }
-    window.location.href = authUrl;
+    const url = new URL(authUrl);
+    if (typeof window !== 'undefined' && window.location?.origin) {
+      url.searchParams.set('origin', window.location.origin);
+    }
+    window.location.href = url.toString();
   };
 
   return (
