@@ -45,6 +45,7 @@ type Config = {
   facebookOauth2Url: string;
   facebookOauth2Enabled: boolean;
   jwtExpirationMin: number;
+  twoFactorEnabled?: boolean;
 };
 
 class AppConfig {
@@ -182,6 +183,11 @@ class AppConfig {
   static isFacebookOauth2Enabled(): boolean {
     const config = this.fetchOrGetConfig();
     return config.facebookOauth2Enabled || false;
+  }
+
+  static isTwoFactorEnabled(): boolean {
+    const config = this.fetchOrGetConfig();
+    return config.twoFactorEnabled || false;
   }
 
   static getClient(): Client {

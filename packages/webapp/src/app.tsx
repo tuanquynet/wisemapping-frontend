@@ -67,7 +67,11 @@ const AdminLayout = React.lazy(() => import('./components/admin-console/layout')
 const AccountsPage = React.lazy(() => import('./components/admin-console/accounts-page'));
 const MapsAdminPage = React.lazy(() => import('./components/admin-console/maps-page'));
 const SystemPage = React.lazy(() => import('./components/admin-console/system-page'));
+const SecurityEventsPage = React.lazy(
+  () => import('./components/admin-console/security-events-page'),
+);
 
+const AccountSecurityPage = React.lazy(() => import('./components/account-security-page'));
 const PageEditorWrapper = ({ mode }: { mode: PageModeType }) => {
   const id = useParams().id;
   if (id === undefined) {
@@ -237,7 +241,27 @@ const buildRouter = () =>
                   </Suspense>
                 }
               />
+              <Route
+                path="/c/admin/security-events"
+                element={
+                  <Suspense fallback={<LoadingFallback />}>
+                    <SecurityEventsPage />
+                  </Suspense>
+                }
+              />
             </Route>
+            <Route
+              path="/c/account/security"
+              element={
+                AppConfig.isTwoFactorEnabled() ? (
+                  <Suspense fallback={<LoadingFallback />}>
+                    <AccountSecurityPage />
+                  </Suspense>
+                ) : (
+                  <Redirect to="/c/maps/" />
+                )
+              }
+            />
 
             <Route
               path="/c/maps/"

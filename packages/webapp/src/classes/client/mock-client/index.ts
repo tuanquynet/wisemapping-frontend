@@ -29,6 +29,13 @@ import Client, {
   ForgotPasswordResult,
   JwtAuth,
   MapMetadata,
+  TwoFactorStatus,
+  TwoFactorEnrollment,
+  TwoFactorActivationResult,
+  LoginResult,
+  CompleteTwoFactorChallengeParams,
+  TrustedDevice,
+  SecurityEvent,
 } from '..';
 import { LocaleCode, localeFromStr } from '../../app-i18n';
 import Cookies from 'universal-cookie';
@@ -252,10 +259,10 @@ class MockClient implements Client {
     return Promise.resolve();
   }
 
-  login(auth: JwtAuth): Promise<void> {
+  login(auth: JwtAuth): Promise<LoginResult> {
     JwtTokenConfig.storeToken(auth.email);
     setAnalyticsUserEmail(auth.email);
-    return Promise.resolve();
+    return Promise.resolve({ success: true });
   }
 
   private _jwtToken(): string | undefined {
@@ -666,6 +673,92 @@ class MockClient implements Client {
 
   deleteAdminUser(_userId: number): Promise<void> {
     return Promise.resolve();
+  }
+
+  getTwoFactorStatus(): Promise<TwoFactorStatus> {
+    return Promise.resolve({
+      enabled: false,
+      pendingEnrollment: false,
+      recoveryCodesRemaining: 0,
+      reenrollRequired: false,
+      activatedAt: null,
+    });
+  }
+
+  startTwoFactorEnrollment(
+    _param?: string | { password?: string; code?: string },
+  ): Promise<TwoFactorEnrollment> {
+    const setupKey = 'JBSWY3DPEHPK3PXPJBSWY3DPEHPK3PXP';
+    return Promise.resolve({
+      otpauthUri: `otpauth://totp/WiseMapping:mock-user@example.org?secret=${setupKey}&issuer=WiseMapping&algorithm=SHA1&digits=6&period=30`,
+      setupKey,
+    });
+  }
+
+  abandonTwoFactorEnrollment(): Promise<void> {
+    return Promise.resolve();
+  }
+
+  activateTwoFactorEnrollment(_code: string): Promise<TwoFactorActivationResult> {
+    return Promise.resolve({
+      recoveryCodes: [
+        '4N6K3P9Q2X',
+        '8R7M2W5T9Y',
+        '2K9X4N6P3Q',
+        '5T8Y2M7R4W',
+        '9Q3X4K6N2P',
+        '7W4Y5T8M2R',
+        '6N2P9Q3X4K',
+        '3T8M7W4Y5R',
+        '4K6N2P9Q3X',
+        '2W5T8Y4M7R',
+      ],
+    });
+  }
+
+  regenerateRecoveryCodes(
+    _param?: string | { password?: string; code?: string },
+  ): Promise<string[]> {
+    return Promise.resolve([
+      '9Q3X4-K6N2P',
+      '7W4Y5-T8M2R',
+      '6N2P9-Q3X4K',
+      '3T8M7-W4Y5R',
+      '4K6N2-P9Q3X',
+      '2W5T8-Y4M7R',
+      '8R7M2-W5T9Y',
+      '4N6K3-P9Q2X',
+      '2K9X4-N6P3Q',
+      '5T8Y2-M7R4W',
+    ]);
+  }
+
+  disableTwoFactor(_param?: string | { password?: string; code?: string }): Promise<void> {
+    return Promise.resolve();
+  }
+
+  completeTwoFactorChallenge(_params: CompleteTwoFactorChallengeParams): Promise<void> {
+    return Promise.resolve();
+  }
+
+  private _mockDevices: TrustedDevice[] = [];
+
+  fetchTrustedDevices(): Promise<TrustedDevice[]> {
+    return Promise.resolve([...this._mockDevices]);
+  }
+
+  revokeTrustedDevice(id: number): Promise<void> {
+    this._mockDevices = this._mockDevices.filter((d) => d.id !== id);
+    return Promise.resolve();
+  }
+
+  revokeAllTrustedDevices(): Promise<void> {
+    this._mockDevices = [];
+    return Promise.resolve();
+  }
+
+  fetchSecurityEvents(): Promise<SecurityEvent[]> {
+    return Promise.resolve([]);
   }
 }
 

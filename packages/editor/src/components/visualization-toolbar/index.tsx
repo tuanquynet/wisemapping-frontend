@@ -106,7 +106,7 @@ export function buildVisualizationToolbarConfig(
           <Typography variant="overline" color="gray">
             {!model?.isMapLoadded()
               ? 100
-              : Math.floor((1 / model.getDesigner().getWorkSpace()?.getZoom()) * 100)}
+              : Math.floor((1 / (model.getDesigner().getWorkSpace()?.getZoom() ?? 1)) * 100)}
             %
           </Typography>
         </Box>

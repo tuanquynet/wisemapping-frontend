@@ -30,6 +30,8 @@ import AccountInfoDialog from './account-info-dialog';
 import Link from '@mui/material/Link';
 import ExitToAppOutlined from '@mui/icons-material/ExitToAppOutlined';
 import AdminPanelSettingsOutlined from '@mui/icons-material/AdminPanelSettingsOutlined';
+import SecurityOutlined from '@mui/icons-material/SecurityOutlined';
+import AppConfig from '../../../classes/app-config';
 import { useNavigate } from 'react-router';
 import { useFetchAccount } from '../../../classes/middleware';
 import { ClientContext } from '../../../classes/provider/client-context';
@@ -98,6 +100,20 @@ const AccountMenu = (): React.ReactElement => {
           </ListItemIcon>
           <FormattedMessage id="menu.account" defaultMessage="Account" />
         </MenuItem>
+
+        {AppConfig.isTwoFactorEnabled() && (
+          <MenuItem
+            onClick={() => {
+              handleClose();
+              navigate('/c/account/security');
+            }}
+          >
+            <ListItemIcon>
+              <SecurityOutlined fontSize="small" />
+            </ListItemIcon>
+            <FormattedMessage id="menu.security" defaultMessage="Security" />
+          </MenuItem>
+        )}
 
         {isAdmin && (
           <MenuItem

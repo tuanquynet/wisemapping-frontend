@@ -31,9 +31,17 @@ import Client, {
   JwtAuth,
   MapMetadata,
   LoginErrorInfo,
+  TwoFactorStatus,
+  TwoFactorEnrollment,
+  TwoFactorActivationResult,
+  LoginResult,
+  CompleteTwoFactorChallengeParams,
+  TrustedDevice,
+  SecurityEvent,
 } from '..';
 import AppI18n, { Locale, LocaleCode, localeFromStr } from '../../app-i18n';
 import JwtTokenConfig from '../../jwt-token-config';
+import DeviceTokenConfig from '../../device-token-config';
 import { setAnalyticsUserEmail, clearAnalyticsUserId } from '../../../utils/analytics';
 import { appLogger as log } from '../../../utils/logger';
 
@@ -123,34 +131,60 @@ export default class RestClient implements Client {
     return Promise.resolve();
   }
 
-  login(model: JwtAuth): Promise<void> {
-    const handler = (success: () => void, reject: (error: LoginErrorInfo) => void) => {
+  login(model: JwtAuth): Promise<LoginResult> {
+    const handler = (
+      success: (result: LoginResult) => void,
+      reject: (error: LoginErrorInfo) => void,
+    ) => {
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      const deviceToken = DeviceTokenConfig.retrieveToken();
+      if (deviceToken) {
+        headers['X-Device-Token'] = deviceToken;
+      }
+
       this.axios
         .post(`${this.baseUrl}/api/restful/authenticate`, model, {
-          headers: { 'Content-Type': 'application/json' },
+          headers,
+          validateStatus: (status) => (status >= 200 && status < 300) || status === 202,
         })
         .then((response) => {
-          // Story JWT token ...
-          const token = response.data;
+          if (response.status === 202) {
+            // Prune stale/expired device token from localStorage (FR16, D12)
+            if (deviceToken) {
+              DeviceTokenConfig.removeToken();
+            }
 
+            const data = response.data as {
+              action: string;
+              challengeToken: string;
+              expiresInSec: number;
+              recoveryAvailable: boolean;
+            };
+            success({
+              twoFactorRequired: true,
+              challengeToken: data.challengeToken,
+              expiresInSec: data.expiresInSec,
+              recoveryAvailable: data.recoveryAvailable,
+            });
+            return;
+          }
+
+          // Status 200: standard login
+          const token = response.data;
           JwtTokenConfig.storeToken(token);
-          // Fetch account info and set analytics user ID
           this.fetchAccountInfo()
             .then((accountInfo) => {
               setAnalyticsUserEmail(accountInfo.email);
             })
             .catch((error) => {
-              // Don't block login if analytics fails
               log.warn('Failed to set analytics user ID after login:', error);
             });
-          success();
+          success({ success: true });
         })
         .catch((error) => {
-          // Handle an expected error ...
           log.error(error);
           const errorInfo = this.parseResponseOnError(error.response) as LoginErrorInfo;
           errorInfo.code = !error.response || error.response.status !== 403 ? 1 : 3;
-
           reject(errorInfo);
         });
     };
@@ -1020,4 +1054,175 @@ export default class RestClient implements Client {
 
     return result;
   };
+
+  async getTwoFactorStatus(): Promise<TwoFactorStatus> {
+    const url = `${this.baseUrl}/api/restful/account/twoFactor`;
+    try {
+      const response = await this.axios.get<TwoFactorStatus>(url, {
+        headers: { 'Content-Type': 'application/json' },
+      });
+      return response.data;
+    } catch (error: unknown) {
+      const err = error as { response?: unknown };
+      return Promise.reject(this.parseResponseOnError(err?.response));
+    }
+  }
+
+  async startTwoFactorEnrollment(
+    param?: string | { password?: string; code?: string },
+  ): Promise<TwoFactorEnrollment> {
+    const url = `${this.baseUrl}/api/restful/account/twoFactor/enrollment`;
+    let body: Record<string, unknown> = {};
+    if (typeof param === 'string') {
+      body = { password: param };
+    } else if (typeof param === 'object' && param !== null) {
+      body = param;
+    }
+    try {
+      const response = await this.axios.post<TwoFactorEnrollment>(url, body, {
+        headers: { 'Content-Type': 'application/json' },
+      });
+      return response.data;
+    } catch (error: unknown) {
+      const err = error as { response?: unknown };
+      return Promise.reject(this.parseResponseOnError(err?.response));
+    }
+  }
+
+  async abandonTwoFactorEnrollment(): Promise<void> {
+    const url = `${this.baseUrl}/api/restful/account/twoFactor/enrollment`;
+    try {
+      await this.axios.delete(url);
+    } catch (error: unknown) {
+      const err = error as { response?: unknown };
+      return Promise.reject(this.parseResponseOnError(err?.response));
+    }
+  }
+
+  async activateTwoFactorEnrollment(code: string): Promise<TwoFactorActivationResult> {
+    const url = `${this.baseUrl}/api/restful/account/twoFactor/enrollment`;
+    try {
+      const response = await this.axios.put<TwoFactorActivationResult>(
+        url,
+        { code },
+        { headers: { 'Content-Type': 'application/json' } },
+      );
+      return response.data;
+    } catch (error: unknown) {
+      const err = error as { response?: unknown };
+      return Promise.reject(this.parseResponseOnError(err?.response));
+    }
+  }
+
+  async regenerateRecoveryCodes(
+    param?: string | { password?: string; code?: string },
+  ): Promise<string[]> {
+    const url = `${this.baseUrl}/api/restful/account/twoFactor/recoveryCodes`;
+    let body: Record<string, unknown> = {};
+    if (typeof param === 'string') {
+      body = { code: param };
+    } else if (typeof param === 'object' && param !== null) {
+      body = param;
+    }
+    try {
+      const response = await this.axios.post<{ recoveryCodes: string[] }>(url, body, {
+        headers: { 'Content-Type': 'application/json' },
+      });
+      return response.data.recoveryCodes ?? [];
+    } catch (error: unknown) {
+      const err = error as { response?: unknown };
+      return Promise.reject(this.parseResponseOnError(err?.response));
+    }
+  }
+
+  async disableTwoFactor(param?: string | { password?: string; code?: string }): Promise<void> {
+    const url = `${this.baseUrl}/api/restful/account/twoFactor`;
+    let body: Record<string, unknown> = {};
+    if (typeof param === 'string') {
+      body = { code: param };
+    } else if (typeof param === 'object' && param !== null) {
+      body = param;
+    }
+    try {
+      await this.axios.delete(url, {
+        headers: { 'Content-Type': 'application/json' },
+        data: body,
+      });
+    } catch (error: unknown) {
+      const err = error as { response?: unknown };
+      return Promise.reject(this.parseResponseOnError(err?.response));
+    }
+  }
+
+  completeTwoFactorChallenge(params: CompleteTwoFactorChallengeParams): Promise<void> {
+    const url = `${this.baseUrl}/api/restful/twoFactor/challenge`;
+    return this.axios
+      .post(url, params, {
+        headers: { 'Content-Type': 'application/json' },
+        responseType: 'text',
+      })
+      .then((response) => {
+        const token = response.data;
+        JwtTokenConfig.storeToken(token);
+        const deviceToken = response.headers?.['x-device-token'] as string | undefined;
+        if (deviceToken) {
+          DeviceTokenConfig.storeToken(deviceToken);
+        }
+        this.fetchAccountInfo()
+          .then((accountInfo) => {
+            setAnalyticsUserEmail(accountInfo.email);
+          })
+          .catch((error) => {
+            log.warn('Failed to set analytics user ID after 2FA login:', error);
+          });
+      })
+      .catch((error) => {
+        log.error('Error completing 2FA challenge', error);
+        return Promise.reject(this.parseResponseOnError(error?.response));
+      });
+  }
+
+  async fetchTrustedDevices(): Promise<TrustedDevice[]> {
+    const url = `${this.baseUrl}/api/restful/account/twoFactor/devices`;
+    try {
+      const response = await this.axios.get<{ devices: TrustedDevice[] }>(url, {
+        headers: { 'Content-Type': 'application/json' },
+      });
+      return response.data.devices ?? [];
+    } catch (error: unknown) {
+      const err = error as { response?: unknown };
+      return Promise.reject(this.parseResponseOnError(err?.response));
+    }
+  }
+
+  async revokeTrustedDevice(id: number): Promise<void> {
+    const url = `${this.baseUrl}/api/restful/account/twoFactor/devices/${id}`;
+    try {
+      await this.axios.delete(url);
+    } catch (error: unknown) {
+      const err = error as { response?: unknown };
+      return Promise.reject(this.parseResponseOnError(err?.response));
+    }
+  }
+
+  async revokeAllTrustedDevices(): Promise<void> {
+    const url = `${this.baseUrl}/api/restful/account/twoFactor/devices`;
+    try {
+      await this.axios.delete(url);
+    } catch (error: unknown) {
+      const err = error as { response?: unknown };
+      return Promise.reject(this.parseResponseOnError(err?.response));
+    }
+  }
+
+  async fetchSecurityEvents(): Promise<SecurityEvent[]> {
+    const url = `${this.baseUrl}/api/restful/account/securityEvents`;
+    try {
+      const response = await this.axios.get<{ events: SecurityEvent[] }>(url);
+      return response.data.events;
+    } catch (error: unknown) {
+      const err = error as { response?: unknown };
+      return Promise.reject(this.parseResponseOnError(err?.response));
+    }
+  }
 }

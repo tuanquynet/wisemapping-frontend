@@ -23,6 +23,8 @@ import {
   AdminMapsResponse,
   AdminMapsParams,
   AdminClientInterface,
+  AdminSecurityEventsParams,
+  AdminSecurityEventsResponse,
   SystemInfo,
   SystemHealth,
 } from '../admin-client';
@@ -523,6 +525,11 @@ class MockAdminClient implements AdminClientInterface {
     return Promise.resolve(updatedUser);
   }
 
+  resetUserTwoFactor(userId: number, data: { password: string; reason: string }): Promise<void> {
+    console.log('MockAdminClient: Resetting user 2FA', userId, data);
+    return Promise.resolve();
+  }
+
   createAdminUser(
     userData: Omit<AdminUser, 'id' | 'fullName'> & { password: string },
   ): Promise<AdminUser> {
@@ -876,6 +883,20 @@ class MockAdminClient implements AdminClientInterface {
 
     user.authenticationType = AuthenticationType.DATABASE;
     return Promise.resolve();
+  }
+
+  getAdminSecurityEvents(params?: AdminSecurityEventsParams): Promise<AdminSecurityEventsResponse> {
+    const page = params?.page ?? 0;
+    const pageSize = params?.pageSize ?? 20;
+    return Promise.resolve({
+      data: [],
+      page,
+      pageSize,
+      totalElements: 0,
+      totalPages: 0,
+      hasNext: false,
+      hasPrevious: false,
+    });
   }
 }
 

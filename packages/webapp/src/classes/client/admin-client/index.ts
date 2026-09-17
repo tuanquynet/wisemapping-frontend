@@ -32,6 +32,7 @@ import {
   MapMetadata,
   LoginErrorInfo,
   AuthenticationType,
+  SecurityEvent,
 } from '..';
 import { Locale, LocaleCode } from '../../app-i18n';
 import JwtTokenConfig from '../../jwt-token-config';
@@ -119,6 +120,25 @@ export interface AdminMapsResponse {
   hasPrevious: boolean;
 }
 
+export interface AdminSecurityEventsParams {
+  page?: number;
+  pageSize?: number;
+  account?: string;
+  action?: string;
+  fromDate?: number | string;
+  toDate?: number | string;
+}
+
+export interface AdminSecurityEventsResponse {
+  data: SecurityEvent[];
+  page: number;
+  pageSize: number;
+  totalElements: number;
+  totalPages: number;
+  hasNext: boolean;
+  hasPrevious: boolean;
+}
+
 export interface SystemInfo {
   application: {
     name: string;
@@ -193,6 +213,7 @@ export interface AdminClientInterface {
   changeUserPassword(userId: number, password: string): Promise<void>;
   getUserByFacebookId(facebookId: string): Promise<AdminUser>;
   removeFacebookAccount(userId: number): Promise<void>;
+  resetUserTwoFactor(userId: number, data: { password: string; reason: string }): Promise<void>;
 
   getAdminMaps(params?: AdminMapsParams): Promise<AdminMapsResponse>;
   getUserMaps(userId: number): Promise<AdminMap[]>;
@@ -203,8 +224,8 @@ export interface AdminClientInterface {
 
   getSystemInfo(): Promise<SystemInfo>;
   getSystemHealth(): Promise<SystemHealth>;
+  getAdminSecurityEvents(params?: AdminSecurityEventsParams): Promise<AdminSecurityEventsResponse>;
 }
-
 export default class AdminClient implements AdminClientInterface {
   private baseUrl: string;
   private axios: AxiosInstance;
@@ -390,6 +411,16 @@ export default class AdminClient implements AdminClientInterface {
       .then(() => {})
       .catch((error) => {
         console.error(`Failed to remove Facebook account for user ${userId}:`, error);
+        throw this.parseResponseOnError(error.response);
+      });
+  }
+
+  resetUserTwoFactor(userId: number, data: { password: string; reason: string }): Promise<void> {
+    return this.axios
+      .post(`${this.baseUrl}/api/restful/admin/users/${userId}/twoFactor/reset`, data)
+      .then(() => {})
+      .catch((error) => {
+        console.error(`Failed to reset two-factor authentication for user ${userId}:`, error);
         throw this.parseResponseOnError(error.response);
       });
   }
@@ -761,4 +792,26 @@ export default class AdminClient implements AdminClientInterface {
 
     return result;
   };
+
+  getAdminSecurityEvents(params?: AdminSecurityEventsParams): Promise<AdminSecurityEventsResponse> {
+    const queryParams = new URLSearchParams();
+
+    if (params) {
+      if (params.page !== undefined) queryParams.append('page', params.page.toString());
+      if (params.pageSize !== undefined) queryParams.append('pageSize', params.pageSize.toString());
+      if (params.account) queryParams.append('account', params.account);
+      if (params.action) queryParams.append('action', params.action);
+      if (params.fromDate !== undefined) queryParams.append('fromDate', params.fromDate.toString());
+      if (params.toDate !== undefined) queryParams.append('toDate', params.toDate.toString());
+    }
+
+    const url = `${this.baseUrl}/api/restful/admin/securityEvents?${queryParams.toString()}`;
+
+    return this.axios
+      .get<AdminSecurityEventsResponse>(url)
+      .then((response) => response.data)
+      .catch((error) => {
+        return Promise.reject(this.parseResponseOnError(error.response));
+      });
+  }
 }

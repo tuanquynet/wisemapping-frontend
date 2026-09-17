@@ -39,6 +39,7 @@ import PersonIcon from '@mui/icons-material/Person';
 import SettingsIcon from '@mui/icons-material/Settings';
 import MapIcon from '@mui/icons-material/Map';
 import AdminIcon from '@mui/icons-material/AdminPanelSettings';
+import SecurityIcon from '@mui/icons-material/Security';
 import { adminConsoleStyles } from '../styles';
 import { useAdminPermissions } from '../../../classes/hooks/useAdminPermissions';
 
@@ -91,6 +92,15 @@ const AdminLayout = (): ReactElement => {
       }),
       icon: <SettingsIcon />,
       path: '/c/admin/system',
+    },
+    {
+      id: 'security-events',
+      label: intl.formatMessage({
+        id: 'admin.menu.security-events',
+        defaultMessage: 'Security Events',
+      }),
+      icon: <SecurityIcon />,
+      path: '/c/admin/security-events',
     },
   ];
 

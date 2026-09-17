@@ -26,7 +26,7 @@ export const organicTokens = {
     groundDark: '#2a231a',
     sand: '#eee7db',
     sandDark: '#332c21',
-    terracotta: '#c67139',
+    terracotta: '#a8521d',
     terracottaDark: '#cc8a5c',
     sage: '#ccdbb2',
     sageDark: '#7f9463',

@@ -44,7 +44,59 @@ export type Label = {
   color: string;
 };
 
+export type TwoFactorStatus = {
+  enabled: boolean;
+  pendingEnrollment: boolean;
+  recoveryCodesRemaining: number;
+  reenrollRequired: boolean;
+  activatedAt: number | null;
+};
+
+export type TwoFactorEnrollment = {
+  otpauthUri: string;
+  setupKey: string;
+};
+
+export type TwoFactorActivationResult = {
+  recoveryCodes: string[];
+};
+
+export type LoginResult =
+  | { success: true }
+  | {
+      twoFactorRequired: true;
+      challengeToken: string;
+      expiresInSec: number;
+      recoveryAvailable: boolean;
+    };
+
+export type CompleteTwoFactorChallengeParams = {
+  challengeToken: string;
+  code: string;
+  type?: 'totp' | 'recovery';
+  rememberDevice?: boolean;
+};
+
+export type TrustedDevice = {
+  id: number;
+  label: string;
+  createdAt: number;
+  expiresAt: number;
+  lastUsedAt: number | null;
+};
 export type Role = 'owner' | 'editor' | 'viewer';
+
+export type SecurityEvent = {
+  id: number;
+  actorEmail: string;
+  action: string;
+  outcome: 'success' | 'failure';
+  reason: string | null;
+  detail: string | null;
+  createdAt: number;
+  affectedAccountId?: number;
+  affectedAccountEmail?: string | null;
+};
 
 export type MapInfo = {
   id: number;
@@ -143,7 +195,7 @@ export type ForgotPasswordResult = {
 };
 
 interface Client {
-  login(auth: JwtAuth): Promise<void>;
+  login(auth: JwtAuth): Promise<LoginResult>;
   logout(): Promise<void>;
   deleteAccount(): Promise<void>;
   importMap(model: ImportMapInfo): Promise<number>;
@@ -191,6 +243,19 @@ interface Client {
   revertHistory(id: number, cid: number): Promise<void>;
 
   onSessionExpired(callback?: () => void): (() => void) | undefined;
+  getTwoFactorStatus(): Promise<TwoFactorStatus>;
+  startTwoFactorEnrollment(
+    param?: string | { password?: string; code?: string },
+  ): Promise<TwoFactorEnrollment>;
+  abandonTwoFactorEnrollment(): Promise<void>;
+  activateTwoFactorEnrollment(code: string): Promise<TwoFactorActivationResult>;
+  regenerateRecoveryCodes(param?: string | { password?: string; code?: string }): Promise<string[]>;
+  disableTwoFactor(param?: string | { password?: string; code?: string }): Promise<void>;
+  completeTwoFactorChallenge(params: CompleteTwoFactorChallengeParams): Promise<void>;
+  fetchTrustedDevices(): Promise<TrustedDevice[]>;
+  revokeTrustedDevice(id: number): Promise<void>;
+  revokeAllTrustedDevices(): Promise<void>;
+  fetchSecurityEvents(): Promise<SecurityEvent[]>;
 }
 
 export default Client;

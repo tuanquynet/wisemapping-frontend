@@ -12,6 +12,7 @@
         "googleOauth2Enabled": false,
         "facebookOauth2Url": "",
         "facebookOauth2Enabled": false,
-        "jwtExpirationMin": 10080
+        "jwtExpirationMin": 10080,
+        "twoFactorEnabled": false
     }
 }

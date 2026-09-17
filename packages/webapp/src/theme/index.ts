@@ -28,7 +28,7 @@ const createAppTheme = (mode: PaletteMode): Theme => {
         light: isLight ? organicTokens.color.terracotta : organicTokens.color.terracottaDark,
         main: isLight ? organicTokens.color.terracotta : organicTokens.color.terracottaDark,
         dark: isLight ? organicTokens.color.terracottaDark : organicTokens.color.terracotta,
-        contrastText: '#FFFFFF',
+        contrastText: isLight ? '#FFFFFF' : '#1c150c',
       },
       secondary: {
         light: '#a19f9f',

@@ -34,7 +34,8 @@ import GoogleButton from '../common/google-button';
 import FacebookButton from '../common/facebook-button';
 import AppConfig from '../../classes/app-config';
 import { useMutation } from '@tanstack/react-query';
-import { ErrorInfo, LoginErrorInfo } from '../../classes/client';
+import { ErrorInfo, LoginErrorInfo, LoginResult } from '../../classes/client';
+import TwoFactorChallenge from './two-factor-challenge';
 import { ClientContext } from '../../classes/provider/client-context';
 import { SEOHead } from '../seo';
 import { useTheme } from '../../contexts/ThemeContext';
@@ -74,6 +75,10 @@ const LoginPage = (): React.ReactElement => {
   const [model, setModel] = useState<Model>(defaultModel);
   const [loginError, setLoginError] = useState<LoginErrorInfo | undefined>(undefined);
   const [isCheckingAuth, setIsCheckingAuth] = useState<boolean>(true);
+  const [challengeData, setChallengeData] = useState<{
+    challengeToken: string;
+    recoveryAvailable: boolean;
+  } | null>(null);
 
   const client = useContext(ClientContext);
   const location = useLocation();
@@ -126,9 +131,16 @@ const LoginPage = (): React.ReactElement => {
     checkAuthentication();
   }, [client, location.search]);
 
-  const mutation = useMutation<void, ErrorInfo, Model>({
+  const mutation = useMutation<LoginResult, ErrorInfo, Model>({
     mutationFn: (model: Model) => client.login({ ...model }),
-    onSuccess: () => {
+    onSuccess: (result) => {
+      if (result && 'twoFactorRequired' in result && result.twoFactorRequired) {
+        setChallengeData({
+          challengeToken: result.challengeToken,
+          recoveryAvailable: result.recoveryAvailable,
+        });
+        return;
+      }
       initializeThemeFromSystem();
 
       let redirectUrl = new URLSearchParams(location.search).get('redirect');
@@ -211,175 +223,195 @@ const LoginPage = (): React.ReactElement => {
         }}
       >
         <FormContainer>
-          <header>
-            <Typography variant="h4" component="h1">
-              <FormattedMessage id="login.title" defaultMessage="Welcome" />
-            </Typography>
-
-            <Typography
-              sx={{
-                marginBottom: '16px',
+          {challengeData !== null ? (
+            <TwoFactorChallenge
+              challengeToken={challengeData.challengeToken}
+              recoveryAvailable={challengeData.recoveryAvailable}
+              onSuccess={() => {
+                initializeThemeFromSystem();
+                let redirectUrl = new URLSearchParams(location.search).get('redirect');
+                redirectUrl = redirectUrl ? redirectUrl : '/c/maps/';
+                window.location.href = redirectUrl;
               }}
-            >
-              <FormattedMessage id="login.desc" defaultMessage="Log into your account" />
-            </Typography>
-          </header>
-
-          {isSharedLink && (
-            <Alert severity="info" sx={{ mb: 2 }}>
-              <FormattedMessage
-                id="login.shared-map-notice"
-                defaultMessage="A mind map has been shared with you. Please log in to access it. Don't have an account? Sign up for free or use your Google/Facebook account."
-              />
-            </Alert>
-          )}
-
-          {oauthError && (
-            <Alert severity="error" sx={{ mb: 2 }}>
-              {oauthError === 'oauth_failed' && (
-                <FormattedMessage
-                  id="login.oauth-error"
-                  defaultMessage="OAuth authentication failed. Please try again or use a different sign-in method."
-                />
-              )}
-              {oauthError === 'server_error' && (
-                <FormattedMessage
-                  id="login.server-error"
-                  defaultMessage="An unexpected error occurred. Please try again later."
-                />
-              )}
-              {oauthError !== 'oauth_failed' && oauthError !== 'server_error' && (
-                <FormattedMessage
-                  id="login.generic-error"
-                  defaultMessage="An error occurred during authentication. Please try again."
-                />
-              )}
-            </Alert>
-          )}
-
-          <LoginError error={loginError} />
-
-          <main>
-            <FormControl>
-              <form
-                onSubmit={handleOnSubmit}
-                role="form"
-                aria-label={intl.formatMessage({
-                  id: 'common.login-form',
-                  defaultMessage: 'Login form',
-                })}
-              >
-                <fieldset>
-                  <Input
-                    onChange={handleOnChange}
-                    name="email"
-                    type="email"
-                    label={intl.formatMessage({
-                      id: 'login.email',
-                      defaultMessage: 'Email',
-                    })}
-                    required
-                    autoComplete="email"
-                  />
-                  <Input
-                    onChange={handleOnChange}
-                    name="password"
-                    type="password"
-                    label={intl.formatMessage({
-                      id: 'login.password',
-                      defaultMessage: 'Password',
-                    })}
-                    required
-                    autoComplete="current-password"
-                    maxLength={39}
-                  />
-                  <SubmitButton
-                    value={intl.formatMessage({
-                      id: 'login.signin',
-                      defaultMessage: 'Sign In',
-                    })}
-                    isLoading={mutation.isPending}
-                  />
-                </fieldset>
-              </form>
-            </FormControl>
-          </main>
-          <Link component={RouterLink} to="/c/forgot-password">
-            <FormattedMessage id="login.forgotpwd" defaultMessage="Forgot Password ?" />
-          </Link>
-          {(AppConfig.isGoogleOauth2Enabled() || AppConfig.isFacebookOauth2Enabled()) && (
-            <>
-              <Separator
-                responsive={false}
-                text={intl.formatMessage({
-                  id: 'login.division',
-                  defaultMessage: 'or',
-                })}
-              />
-              <Box
-                sx={{
-                  display: 'flex',
-                  gap: 2,
-                  flexWrap: 'wrap',
-                  width: '100%',
-                  marginBottom: '-20px',
-                }}
-              >
-                {AppConfig.isGoogleOauth2Enabled() && (
-                  <GoogleButton
-                    text={intl.formatMessage({
-                      id: 'login.google.button',
-                      defaultMessage: 'Sign in with Google',
-                    })}
-                    onClick={() => handleOAuthLogin(AppConfig.getGoogleOauth2Url(), 'Google')}
-                  />
-                )}
-                {AppConfig.isFacebookOauth2Enabled() && (
-                  <FacebookButton
-                    text={intl.formatMessage({
-                      id: 'login.facebook.button',
-                      defaultMessage: 'Sign in with Facebook',
-                    })}
-                    onClick={() => handleOAuthLogin(AppConfig.getFacebookOauth2Url(), 'Facebook')}
-                  />
-                )}
-              </Box>
-            </>
-          )}
-          <Typography
-            variant="body2"
-            sx={{
-              fontSize: '12px',
-              mt: 3,
-              textAlign: 'center',
-              width: '100%',
-            }}
-          >
-            <FormattedMessage
-              id="common.terms-notice"
-              defaultMessage="By continuing, you agree to our <termsLink>Terms of Service</termsLink> and <privacyLink>Privacy Policy</privacyLink>."
-              values={{
-                termsLink: (chunks: React.ReactNode) => (
-                  <Link
-                    href="https://www.wisemapping.com/termsofuse.html"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    {chunks}
-                  </Link>
-                ),
-                privacyLink: (chunks: React.ReactNode) => (
-                  <Link
-                    href="https://www.wisemapping.com/privacy"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    {chunks}
-                  </Link>
-                ),
+              onCancel={() => {
+                setChallengeData(null);
               }}
             />
-          </Typography>
+          ) : (
+            <>
+              <header>
+                <Typography variant="h4" component="h1">
+                  <FormattedMessage id="login.title" defaultMessage="Welcome" />
+                </Typography>
+
+                <Typography
+                  sx={{
+                    marginBottom: '16px',
+                  }}
+                >
+                  <FormattedMessage id="login.desc" defaultMessage="Log into your account" />
+                </Typography>
+              </header>
+
+              {isSharedLink && (
+                <Alert severity="info" sx={{ mb: 2 }}>
+                  <FormattedMessage
+                    id="login.shared-map-notice"
+                    defaultMessage="A mind map has been shared with you. Please log in to access it. Don't have an account? Sign up for free or use your Google/Facebook account."
+                  />
+                </Alert>
+              )}
+
+              {oauthError && (
+                <Alert severity="error" sx={{ mb: 2 }}>
+                  {oauthError === 'oauth_failed' && (
+                    <FormattedMessage
+                      id="login.oauth-error"
+                      defaultMessage="OAuth authentication failed. Please try again or use a different sign-in method."
+                    />
+                  )}
+                  {oauthError === 'server_error' && (
+                    <FormattedMessage
+                      id="login.server-error"
+                      defaultMessage="An unexpected error occurred. Please try again later."
+                    />
+                  )}
+                  {oauthError !== 'oauth_failed' && oauthError !== 'server_error' && (
+                    <FormattedMessage
+                      id="login.generic-error"
+                      defaultMessage="An error occurred during authentication. Please try again."
+                    />
+                  )}
+                </Alert>
+              )}
+
+              <LoginError error={loginError} />
+
+              <main>
+                <FormControl>
+                  <form
+                    onSubmit={handleOnSubmit}
+                    role="form"
+                    aria-label={intl.formatMessage({
+                      id: 'common.login-form',
+                      defaultMessage: 'Login form',
+                    })}
+                  >
+                    <fieldset>
+                      <Input
+                        onChange={handleOnChange}
+                        name="email"
+                        type="email"
+                        label={intl.formatMessage({
+                          id: 'login.email',
+                          defaultMessage: 'Email',
+                        })}
+                        required
+                        autoComplete="email"
+                      />
+                      <Input
+                        onChange={handleOnChange}
+                        name="password"
+                        type="password"
+                        label={intl.formatMessage({
+                          id: 'login.password',
+                          defaultMessage: 'Password',
+                        })}
+                        required
+                        autoComplete="current-password"
+                        maxLength={39}
+                      />
+                      <SubmitButton
+                        value={intl.formatMessage({
+                          id: 'login.signin',
+                          defaultMessage: 'Sign In',
+                        })}
+                        isLoading={mutation.isPending}
+                      />
+                    </fieldset>
+                  </form>
+                </FormControl>
+              </main>
+              <Link component={RouterLink} to="/c/forgot-password">
+                <FormattedMessage id="login.forgotpwd" defaultMessage="Forgot Password ?" />
+              </Link>
+              {(AppConfig.isGoogleOauth2Enabled() || AppConfig.isFacebookOauth2Enabled()) && (
+                <>
+                  <Separator
+                    responsive={false}
+                    text={intl.formatMessage({
+                      id: 'login.division',
+                      defaultMessage: 'or',
+                    })}
+                  />
+                  <Box
+                    sx={{
+                      display: 'flex',
+                      gap: 2,
+                      flexWrap: 'wrap',
+                      width: '100%',
+                      marginBottom: '-20px',
+                    }}
+                  >
+                    {AppConfig.isGoogleOauth2Enabled() && (
+                      <GoogleButton
+                        text={intl.formatMessage({
+                          id: 'login.google.button',
+                          defaultMessage: 'Sign in with Google',
+                        })}
+                        onClick={() => handleOAuthLogin(AppConfig.getGoogleOauth2Url(), 'Google')}
+                      />
+                    )}
+                    {AppConfig.isFacebookOauth2Enabled() && (
+                      <FacebookButton
+                        text={intl.formatMessage({
+                          id: 'login.facebook.button',
+                          defaultMessage: 'Sign in with Facebook',
+                        })}
+                        onClick={() =>
+                          handleOAuthLogin(AppConfig.getFacebookOauth2Url(), 'Facebook')
+                        }
+                      />
+                    )}
+                  </Box>
+                </>
+              )}
+              <Typography
+                variant="body2"
+                sx={{
+                  fontSize: '12px',
+                  mt: 3,
+                  textAlign: 'center',
+                  width: '100%',
+                }}
+              >
+                <FormattedMessage
+                  id="common.terms-notice"
+                  defaultMessage="By continuing, you agree to our <termsLink>Terms of Service</termsLink> and <privacyLink>Privacy Policy</privacyLink>."
+                  values={{
+                    termsLink: (chunks: React.ReactNode) => (
+                      <Link
+                        href="https://www.wisemapping.com/termsofuse.html"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        {chunks}
+                      </Link>
+                    ),
+                    privacyLink: (chunks: React.ReactNode) => (
+                      <Link
+                        href="https://www.wisemapping.com/privacy"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        {chunks}
+                      </Link>
+                    ),
+                  }}
+                />
+              </Typography>
+            </>
+          )}
         </FormContainer>
       </AccountAccessLayout>
     </>

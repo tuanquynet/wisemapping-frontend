@@ -17,7 +17,9 @@
  */
 
 import React, { ReactElement, useState, useEffect } from 'react';
-import { useIntl } from 'react-intl';
+import { useIntl, FormattedMessage } from 'react-intl';
+import { useTheme } from '@mui/material/styles';
+import useMediaQuery from '@mui/material/useMediaQuery';
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
 import Table from '@mui/material/Table';
@@ -69,6 +71,8 @@ import LinkOffIcon from '@mui/icons-material/LinkOff';
 import VpnKeyIcon from '@mui/icons-material/VpnKey';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ExpandLessIcon from '@mui/icons-material/ExpandLess';
+import LockResetIcon from '@mui/icons-material/LockReset';
+import VerifiedActionForm from '../../account-security-page/VerifiedActionForm';
 import { AdminUsersParams } from '../../../classes/client/admin-client';
 import { AuthenticationType } from '../../../classes/client';
 import AppConfig from '../../../classes/app-config';
@@ -108,6 +112,8 @@ const AccountManagement = (): ReactElement => {
   const client = AppConfig.getAdminClient();
   const queryClient = useQueryClient();
   const facebookEnabled = AppConfig.isFacebookOauth2Enabled();
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
   const [searchTerm, setSearchTerm] = useState('');
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
@@ -175,6 +181,60 @@ const AccountManagement = (): ReactElement => {
   const [isFacebookLookupLoading, setIsFacebookLookupLoading] = useState(false);
   const [isRemoveFacebookDialogOpen, setIsRemoveFacebookDialogOpen] = useState(false);
   const [removingFacebookUser, setRemovingFacebookUser] = useState<User | null>(null);
+
+  // 2FA Reset dialog state (Story 4.3, FR30, FR31, UX-DR19)
+  const [is2FAResetDialogOpen, setIs2FAResetDialogOpen] = useState(false);
+  const [resetting2FAUser, setResetting2FAUser] = useState<User | null>(null);
+  const [is2FAResetPending, setIs2FAResetPending] = useState(false);
+  const [reset2FAError, setReset2FAError] = useState<string | null>(null);
+
+  const handleOpen2FAResetDialog = (user: User) => {
+    setResetting2FAUser(user);
+    setReset2FAError(null);
+    setIs2FAResetDialogOpen(true);
+  };
+
+  const handleClose2FAResetDialog = () => {
+    if (!is2FAResetPending) {
+      setIs2FAResetDialogOpen(false);
+      setResetting2FAUser(null);
+      setReset2FAError(null);
+    }
+  };
+
+  const handleConfirm2FAReset = async (password: string, reason?: string) => {
+    if (!resetting2FAUser) return;
+    setIs2FAResetPending(true);
+    setReset2FAError(null);
+    try {
+      await client.resetUserTwoFactor(resetting2FAUser.id, {
+        password,
+        reason: reason || '',
+      });
+      setIs2FAResetDialogOpen(false);
+      setResetting2FAUser(null);
+      queryClient.invalidateQueries({ queryKey: ['adminUsers'] });
+    } catch (err: unknown) {
+      const e = err as {
+        msg?: string;
+        globalErrors?: string[];
+        fieldErrors?: Record<string, string>;
+      };
+      const msg =
+        e?.fieldErrors?.password ||
+        e?.fieldErrors?.reason ||
+        e?.globalErrors?.[0] ||
+        e?.msg ||
+        intl.formatMessage({
+          id: 'admin.error.reset-2fa-failed',
+          defaultMessage:
+            'Failed to reset two-step verification. Please verify your password and try again.',
+        });
+      setReset2FAError(msg);
+    } finally {
+      setIs2FAResetPending(false);
+    }
+  };
 
   // Suspension reasons
   const suspensionReasons = [
@@ -1141,6 +1201,17 @@ const AccountManagement = (): ReactElement => {
                     </IconButton>
                     <IconButton
                       size="small"
+                      onClick={() => handleOpen2FAResetDialog(user)}
+                      title={intl.formatMessage({
+                        id: 'admin.action.reset-2fa',
+                        defaultMessage: 'Reset two-step verification',
+                      })}
+                      color="warning"
+                    >
+                      <LockResetIcon />
+                    </IconButton>
+                    <IconButton
+                      size="small"
                       onClick={() => handleViewUserMaps(user)}
                       title={intl.formatMessage({
                         id: 'admin.view-user-maps',
@@ -1716,6 +1787,71 @@ const AccountManagement = (): ReactElement => {
                 })}
           </Button>
         </DialogActions>
+      </Dialog>
+
+      {/* Dialog for Admin 2FA Reset (FR30, FR31, UX-DR19) */}
+      <Dialog
+        open={is2FAResetDialogOpen}
+        onClose={handleClose2FAResetDialog}
+        maxWidth="sm"
+        fullWidth
+        fullScreen={isMobile}
+        aria-labelledby="reset-2fa-dialog-title"
+      >
+        <DialogTitle id="reset-2fa-dialog-title">
+          <Typography variant="h6" component="h2" fontWeight={600}>
+            <FormattedMessage
+              id="admin.dialog.reset-2fa-title"
+              defaultMessage="Reset two-step verification"
+            />
+          </Typography>
+        </DialogTitle>
+        <DialogContent dividers>
+          <VerifiedActionForm
+            consequence={
+              <FormattedMessage
+                id="admin.dialog.reset-2fa-consequence"
+                defaultMessage="We cannot verify that the person requesting this reset is the true account owner. Resetting two-step verification will immediately remove their authenticator, invalidate all recovery codes, revoke all remembered browsers, end all active sessions, and require them to re-enroll on next sign-in. This action is permanently recorded in the audit log."
+              />
+            }
+            consequenceSeverity="error"
+            variant="password"
+            factorLabel={
+              <FormattedMessage
+                id="admin.dialog.reset-2fa-password-label"
+                defaultMessage="Your administrator password"
+              />
+            }
+            helperText={
+              <FormattedMessage
+                id="admin.dialog.reset-2fa-helper"
+                defaultMessage="Your administrator password is required to approve this reset."
+              />
+            }
+            requireReason={true}
+            reasonLabel={
+              <FormattedMessage
+                id="admin.dialog.reset-2fa-reason-label"
+                defaultMessage="Reason for reset"
+              />
+            }
+            reasonPlaceholder={intl.formatMessage({
+              id: 'admin.dialog.reset-2fa-reason-placeholder',
+              defaultMessage: 'e.g. User called from verified telephone after losing device',
+            })}
+            confirmLabel={
+              <FormattedMessage
+                id="admin.action.reset-2fa-confirm"
+                defaultMessage="Reset two-step verification"
+              />
+            }
+            confirmColor="error"
+            isPending={is2FAResetPending}
+            error={reset2FAError}
+            onConfirm={handleConfirm2FAReset}
+            onCancel={handleClose2FAResetDialog}
+          />
+        </DialogContent>
       </Dialog>
     </Box>
   );
