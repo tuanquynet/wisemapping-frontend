@@ -13,6 +13,6 @@
         "facebookOauth2Url": "http://localhost:8090/oauth2/authorization/facebook",
         "facebookOauth2Enabled": true,
         "jwtExpirationMin": 10080,
-        "twoFactorEnabled": false
+        "twoFactorEnabled": true
     }
 }
