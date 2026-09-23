@@ -117,7 +117,18 @@ const LoginPage = (): React.ReactElement => {
   }, []);
 
   useEffect(() => {
-    const redirectUrl = new URLSearchParams(location.search).get('redirect');
+    const params = new URLSearchParams(location.search);
+    const challengeToken = params.get('challengeToken');
+    if (challengeToken) {
+      setChallengeData({
+        challengeToken,
+        recoveryAvailable: params.get('recoveryAvailable') !== 'false',
+      });
+      setIsCheckingAuth(false);
+      return;
+    }
+
+    const redirectUrl = params.get('redirect');
 
     const checkAuthentication = async (): Promise<void> => {
       try {

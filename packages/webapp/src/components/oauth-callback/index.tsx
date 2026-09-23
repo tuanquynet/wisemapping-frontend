@@ -95,7 +95,7 @@ const OAuthCallbackPage = (): React.ReactElement => {
     if (jwtToken && email) {
       // This is a Spring Boot OAuth2 callback - process directly
       // Store JWT token
-      if (jwtToken) {
+      if (jwtToken && oauthSync === 'true') {
         JwtTokenConfig.storeToken(jwtToken);
         setAnalyticsUserEmail(email);
       }
